@@ -1,5 +1,5 @@
 class Bird {
-    construction(canvas) {
+    constructor(canvas) {
         this.canvas = canvas;
         this.ctx = canvas.getContext('2d');
 
@@ -9,18 +9,24 @@ class Bird {
         this.y = canvas.height / 2;
 
         this.velocity = 0;
-        this.gravity = 0.5;
-        this.jumpStrength = -10;
+        this.gravity = 0.15;
+        this.jumpStrength = -4.5;
 
         this.rotation = 0;
 
-        this.spritesheet = new Image();
-        this.spritesheet.src = 'assets/imags/flappybirdassets.png';
+        // Initialize flag first
         this.spriteLoaded = false;
 
+        // Load sprite sheet - set onload BEFORE src
+        this.spriteSheet = new Image();
         this.spriteSheet.onload = () => {
             this.spriteLoaded = true;
+            console.log('Bird sprite loaded!');
         };
+        this.spriteSheet.onerror = () => {
+            console.error('Failed to load bird sprite');
+        };
+        this.spriteSheet.src = 'assets/images/flappybirdassets.png';
 
         this.frames = [
             { x: 223, y: 124, width: 17, height: 12 },
@@ -32,6 +38,12 @@ class Bird {
         this.frameTimer = 0;
         this.frameInterval = 100;
         this.lastFrameTime = 0;
+        
+        // Auto-fly properties for start screen
+        this.autoFlyTime = 0;
+        this.autoFlySpeed = 0.02;
+        this.baseY = canvas.height / 2;
+        this.autoFlyAmplitude = 15;
     }
 
     reset() {
@@ -39,6 +51,8 @@ class Bird {
         this.velocity = 0;
         this.rotation = 0;
         this.currentFrame = 0;
+        this.autoFlyTime = 0;
+        this.baseY = this.canvas.height / 2;
     }
 
     flap() {
@@ -47,12 +61,33 @@ class Bird {
 
     update(currentTime) {
         this.velocity += this.gravity;
+        
+        // Limit falling speed to make it more manageable
+        if (this.velocity > 6) {
+            this.velocity = 6;
+        }
+        
         this.y += this.velocity;
 
         this.rotation = Math.min(Math.max(this.velocity * 3, -30), 90);
 
         if (currentTime - this.lastFrameTime > this.frameInterval) {
-            this.currentFrame = (this.currentFrame +1) % this.frameInterval.lenght;
+            this.currentFrame = (this.currentFrame + 1) % this.frames.length;
+            this.lastFrameTime = currentTime;
+        }
+    }
+    
+    updateAutoFly(currentTime) {
+        // Smooth hovering motion for start screen
+        this.autoFlyTime += this.autoFlySpeed;
+        this.y = this.baseY + Math.sin(this.autoFlyTime) * this.autoFlyAmplitude;
+        
+        // Keep rotation neutral
+        this.rotation = 0;
+        
+        // Animate wings
+        if (currentTime - this.lastFrameTime > this.frameInterval) {
+            this.currentFrame = (this.currentFrame + 1) % this.frames.length;
             this.lastFrameTime = currentTime;
         }
     }
@@ -62,13 +97,13 @@ class Bird {
 
         ctx.save();
         ctx.translate(this.x + this.width / 2, this.y + this.height / 2);
-        ctx.rotate((this.rotation * Math.PI) / 100);
+        ctx.rotate((this.rotation * Math.PI) / 180);
 
-        if (this.spriteLoaded) {
+        if (this.spriteLoaded && this.spriteSheet) {
             const frame = this.frames[this.currentFrame];
 
             ctx.drawImage(
-                this.spriteShet,
+                this.spriteSheet,
                 frame.x,
                 frame.y,
                 frame.width,
@@ -117,10 +152,10 @@ class Bird {
     
     getBounds() {
         return {
-            x: this.x + 5,
-            y: this.y + 5,
-            width: this.width - 10,
-            height: this.height - 10
+            x: this.x + 8,
+            y: this.y + 8,
+            width: this.width - 16,
+            height: this.height - 16
         };
     }
     

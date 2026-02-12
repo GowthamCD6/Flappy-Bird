@@ -1,198 +1,202 @@
-// Pipe class for Flappy Bird
-
 class Pipe {
-    constructor(x, canvasHeight, gapSize = 150) {
-        this.x = x;
+    constructor(canvas, x, spriteSheet, spriteLoaded) {
+        this.canvas = canvas;
+        this.ctx = canvas.getContext('2d');
+
+        this.spriteSheet = spriteSheet;
+        this.spriteLoaded = spriteLoaded;
+
         this.width = 70;
-        this.speed = 3;
-        
-        // Gap configuration
-        this.gapSize = gapSize;
-        this.minGapY = 100;
-        this.maxGapY = canvasHeight - 100 - gapSize;
-        
-        // Random gap position
-        this.gapY = randomRange(this.minGapY, this.maxGapY);
-        
-        // Pipe heights
-        this.topHeight = this.gapY;
-        this.bottomY = this.gapY + this.gapSize;
-        this.bottomHeight = canvasHeight - this.bottomY;
-        
-        // Track if bird passed this pipe
+        this.gap = 160;
+        this.x = x;
+        this.speed = 2;
+
+        this.topPipeSprite = {
+            x: 330,
+            y: 0,
+            width: 26,
+            height: 121
+        };
+
+        this.bottomPipeSprite = {
+            x: 302,
+            y: 0,
+            width: 26,
+            height: 135
+        };
+
+        const minTop = 80;
+        const maxTop = canvas.height - this.gap - 180;
+        this.topHeight = getRandomInt(minTop, maxTop);
+        this.bottomY = this.topHeight + this.gap;
+
         this.passed = false;
-        
-        // Colors
-        this.pipeColor = '#4CAF50';
-        this.pipeEdgeColor = '#388E3C';
-        this.pipeLipColor = '#66BB6A';
     }
-    
-    /**
-     * Update pipe position
-     */
+
     update() {
         this.x -= this.speed;
     }
-    
-    /**
-     * Draw pipes on canvas
-     */
-    draw(ctx, canvasHeight) {
-        // Draw top pipe
-        this.drawPipe(ctx, this.x, 0, this.width, this.topHeight, true);
-        
-        // Draw bottom pipe
-        this.drawPipe(ctx, this.x, this.bottomY, this.width, this.bottomHeight, false);
-    }
-    
-    /**
-     * Draw a single pipe
-     */
-    drawPipe(ctx, x, y, width, height, isTop) {
-        const lipHeight = 30;
-        const lipOverhang = 8;
-        
-        // Main pipe body
-        ctx.fillStyle = this.pipeColor;
-        ctx.fillRect(x, y, width, height);
-        
-        // Pipe edge (3D effect)
-        ctx.fillStyle = this.pipeEdgeColor;
-        ctx.fillRect(x, y, 5, height);
-        ctx.fillRect(x + width - 5, y, 5, height);
-        
-        // Pipe lip
-        ctx.fillStyle = this.pipeLipColor;
-        if (isTop) {
-            // Lip at bottom of top pipe
-            ctx.fillRect(x - lipOverhang, height - lipHeight, width + lipOverhang * 2, lipHeight);
-            ctx.fillStyle = this.pipeEdgeColor;
-            ctx.fillRect(x - lipOverhang, height - lipHeight, width + lipOverhang * 2, 4);
+
+    draw() {
+        const ctx = this.ctx;
+
+        if (this.spriteLoaded && this.spriteSheet) {
+            ctx.save();
+            ctx.translate(this.x + this.width / 2, this.topHeight);
+            ctx.scale(1, -1);
+
+            ctx.drawImage(
+                this.spriteSheet,
+                this.topPipeSprite.x,
+                this.topPipeSprite.y,
+                this.topPipeSprite.width,
+                this.topPipeSprite.height,
+                -this.width / 2,
+                0,
+                this.width,
+                this.topHeight
+            );
+            ctx.restore();
+
+            const bottomHeight = this.canvas.height - this.bottomY;
+            ctx.drawImage(
+                this.spriteSheet,
+                this.bottomPipeSprite.x,
+                this.bottomPipeSprite.y,
+                this.bottomPipeSprite.width,
+                this.bottomPipeSprite.height,
+                this.x,
+                this.bottomY,
+                this.width,
+                bottomHeight
+            );
         } else {
-            // Lip at top of bottom pipe
-            ctx.fillRect(x - lipOverhang, y, width + lipOverhang * 2, lipHeight);
-            ctx.fillStyle = this.pipeEdgeColor;
-            ctx.fillRect(x - lipOverhang, y + lipHeight - 4, width + lipOverhang * 2, 4);
+            this.drawFallbackPipes();
         }
-        
-        // Highlight
-        ctx.fillStyle = 'rgba(255, 255, 255, 0.2)';
-        ctx.fillRect(x + 10, y, 15, height);
     }
-    
-    /**
-     * Check if pipe is off screen (left side)
-     */
+
+    drawFallbackPipes() {
+        const ctx = this.ctx;
+
+        const pipeColor = '#73BF2E';
+        const pipeDarkColor = '#558B2F';
+        const pipeCapColor = '#8BC34A';
+
+        ctx.fillStyle = pipeColor;
+        ctx.fillRect(this.x, 0, this.width, this.topHeight);
+
+        ctx.fillStyle = pipeDarkColor;
+        ctx.fillRect(this.x, 0, 8, this.topHeight);
+
+        ctx.fillStyle = pipeCapColor;
+        ctx.fillRect(this.x - 5, this.topHeight - 30, this.width + 10, 30);
+        ctx.fillStyle = pipeDarkColor;
+        ctx.fillRect(this.x - 5, this.topHeight - 30, 8, 30);
+
+        ctx.fillStyle = pipeColor;
+        ctx.fillRect(this.x, this.bottomY, this.width, this.canvas.height - this.bottomY);
+
+        ctx.fillStyle = pipeDarkColor;
+        ctx.fillRect(this.x, this.bottomY, 8, this.canvas.height - this.bottomY);
+
+        ctx.fillStyle = pipeCapColor;
+        ctx.fillRect(this.x - 5, this.bottomY, this.width + 10, 30);
+        ctx.fillStyle = pipeDarkColor;
+        ctx.fillRect(this.x - 5, this.bottomY, 8, 30);
+    }
+
+    getTopBounds() {
+        return {
+            x: this.x,
+            y: 0,
+            width: this.width,
+            height: this.topHeight
+        };
+    }
+
+    getBottomBounds() {
+        return {
+            x: this.x,
+            y: this.bottomY,
+            width: this.width,
+            height: this.canvas.height - this.bottomY
+        };
+    }
+
     isOffScreen() {
         return this.x + this.width < 0;
     }
-    
-    /**
-     * Get bounding boxes for collision detection
-     */
-    getBounds() {
-        return {
-            top: {
-                x: this.x,
-                y: 0,
-                width: this.width,
-                height: this.topHeight
-            },
-            bottom: {
-                x: this.x,
-                y: this.bottomY,
-                width: this.width,
-                height: this.bottomHeight
-            }
-        };
-    }
 }
 
-/**
- * Pipe Manager - handles spawning and managing pipes
- */
 class PipeManager {
-    constructor(canvasWidth, canvasHeight) {
+    constructor(canvas) {
+        this.canvas = canvas;
         this.pipes = [];
-        this.canvasWidth = canvasWidth;
-        this.canvasHeight = canvasHeight;
-        this.spawnInterval = 1800; // milliseconds
+        this.spawnInterval = 1800;
         this.lastSpawnTime = 0;
-        this.gapSize = 150;
+
+        this.spriteLoaded = false;
+        this.spriteSheet = new Image();
+        this.spriteSheet.onload = () => {
+            this.spriteLoaded = true;
+            console.log('Pipe sprite loaded!');
+        };
+        this.spriteSheet.onerror = () => {
+            console.error('Failed to load pipe sprite');
+        };
+        this.spriteSheet.src = 'assets/images/flappybirdassets.png';
     }
-    
-    /**
-     * Update all pipes
-     */
-    update(currentTime) {
-        // Spawn new pipes
-        if (currentTime - this.lastSpawnTime > this.spawnInterval) {
-            this.spawn();
-            this.lastSpawnTime = currentTime;
-        }
-        
-        // Update existing pipes
-        this.pipes.forEach(pipe => pipe.update());
-        
-        // Remove off-screen pipes
-        this.pipes = this.pipes.filter(pipe => !pipe.isOffScreen());
-    }
-    
-    /**
-     * Spawn a new pipe
-     */
-    spawn() {
-        const pipe = new Pipe(this.canvasWidth, this.canvasHeight, this.gapSize);
-        this.pipes.push(pipe);
-    }
-    
-    /**
-     * Draw all pipes
-     */
-    draw(ctx) {
-        this.pipes.forEach(pipe => pipe.draw(ctx, this.canvasHeight));
-    }
-    
-    /**
-     * Check collision with bird
-     */
-    checkCollision(bird) {
-        const birdBounds = bird.getBounds();
-        
-        for (const pipe of this.pipes) {
-            const pipeBounds = pipe.getBounds();
-            
-            if (checkCollision(birdBounds, pipeBounds.top) ||
-                checkCollision(birdBounds, pipeBounds.bottom)) {
-                return true;
-            }
-        }
-        
-        return false;
-    }
-    
-    /**
-     * Check if bird passed a pipe (for scoring)
-     */
-    checkScore(birdX) {
-        let scored = false;
-        
-        for (const pipe of this.pipes) {
-            if (!pipe.passed && birdX > pipe.x + pipe.width) {
-                pipe.passed = true;
-                scored = true;
-            }
-        }
-        
-        return scored;
-    }
-    
-    /**
-     * Reset all pipes
-     */
+
     reset() {
         this.pipes = [];
         this.lastSpawnTime = 0;
+    }
+
+    update(currentTime) {
+        if (currentTime - this.lastSpawnTime > this.spawnInterval) {
+            this.pipes.push(new Pipe(
+                this.canvas,
+                this.canvas.width,
+                this.spriteSheet,
+                this.spriteLoaded
+            ));
+            this.lastSpawnTime = currentTime;
+        }
+
+        this.pipes.forEach(pipe => {
+            pipe.spriteLoaded = this.spriteLoaded;
+            pipe.update();
+        });
+
+        this.pipes = this.pipes.filter(pipe => !pipe.isOffScreen());
+    }
+
+    draw() {
+        this.pipes.forEach(pipe => pipe.draw());
+    }
+
+    checkCollision(bird) {
+        const birdBounds = bird.getBounds();
+
+        for (let pipe of this.pipes) {
+            if (checkCollision(birdBounds, pipe.getTopBounds()) ||
+                checkCollision(birdBounds, pipe.getBottomBounds())) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    checkScore(bird) {
+        let scored = false;
+
+        this.pipes.forEach(pipe => {
+            if (!pipe.passed && pipe.x + pipe.width < bird.x) {
+                pipe.passed = true;
+                scored = true;
+            }
+        });
+
+        return scored;
     }
 }

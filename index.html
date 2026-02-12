@@ -9,15 +9,27 @@
 <body>
     <div class="game-container">
         <canvas id="gameCanvas"></canvas>
-        <div id="startScreen" class="overlay">
+        <div id="startScreen" class="screen">
             <h1>Flappy Bird</h1>
             <p>Press SPACE or Click to Start</p>
+            <button id="settingsBtn">⚙️ Settings</button>
         </div>
-        <div id="gameOverScreen" class="overlay hidden">
+        <div id="gameOverScreen" class="screen hidden">
             <h1>Game Over</h1>
             <p>Score: <span id="finalScore">0</span></p>
             <p>Best: <span id="bestScore">0</span></p>
             <button id="restartBtn">Play Again</button>
+        </div>
+    </div>
+
+    <div id="settingsMenu" class="settings-overlay hidden">
+        <div class="settings-panel">
+            <div class="sprite-button menu-sprite" data-action="menu"></div>
+            <div class="sprite-button play-sprite" data-action="play"></div>
+            <div class="sprite-button rate-sprite" data-action="rate"></div>
+            <div class="sprite-button score-sprite" data-action="score"></div>
+            <div class="sprite-button score-sprite" data-action="smoke"></div>
+            <div class="sprite-button start-sprite" data-action="start"></div>
         </div>
     </div>
 
