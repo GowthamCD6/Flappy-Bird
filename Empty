@@ -1,0 +1,31 @@
+    pauseGame() {
+        if (this.gameState === 'playing' && !this.isPaused) {
+            this.isPaused = true;
+            console.log('Game paused');
+        }
+    }
+
+    resumeGame() {
+        if (this.gameState === 'playing' && this.isPaused) {
+            this.isPaused = false;
+            this.syncToggleButton();
+        }
+    }
+
+    syncToggleButton() {
+        const toggleBtn = document.getElementById('toggleBtn');
+        if (!toggleBtn) return;
+
+        // If paused: show PLAY sprite (to resume). If playing: show PASS sprite (to pause).
+        toggleBtn.classList.toggle('play-button-sprite', this.isPaused);
+        toggleBtn.classList.toggle('pass-sprite', !this.isPaused);
+        toggleBtn.title = this.isPaused ? 'Resume Game' : 'Pause Game';
+    }
+
+    togglePause() {
+        if (this.gameState !== 'playing') return;
+
+        this.isPaused = !this.isPaused;
+        this.syncToggleButton();
+    }
+   

@@ -10,30 +10,27 @@
     <div class="game-container">
         <canvas id="gameCanvas"></canvas>
         <div id="startScreen" class="screen">
-            <h1>Flappy Bird</h1>
-            <p>Press SPACE or Click to Start</p>
-            <button id="settingsBtn">⚙️ Settings</button>
+            <div class="get-ready-sprite"></div>
+            <div id="startBtn" class="start-sprite-button"></div>
+            <a href="features.html" class="features-link">Features</a>
+        </div>
+        <div id="getReadyScreen" class="screen hidden">
+            <div class="get-ready-text-sprite"></div>
+            <div class="guidance-sprite"></div>
         </div>
         <div id="gameOverScreen" class="screen hidden">
-            <h1>Game Over</h1>
-            <p>Score: <span id="finalScore">0</span></p>
-            <p>Best: <span id="bestScore">0</span></p>
-            <button id="restartBtn">Play Again</button>
+            <div class="game-over-sprite"></div>
+            <div class="scoreboard-sprite">
+                <div id="finalScore">0</div>
+                <div id="bestScore">0</div>
+            </div>
+            <div id="restartBtn" class="restart-sprite-button"></div>
+        </div>
+        <div id="gameControls" class="game-controls hidden">
+            <div class="pass-sprite" id="toggleBtn" title="Pause Game"></div>
         </div>
     </div>
 
-    <div id="settingsMenu" class="settings-overlay hidden">
-        <div class="settings-panel">
-            <div class="sprite-button menu-sprite" data-action="menu"></div>
-            <div class="sprite-button play-sprite" data-action="play"></div>
-            <div class="sprite-button rate-sprite" data-action="rate"></div>
-            <div class="sprite-button score-sprite" data-action="score"></div>
-            <div class="sprite-button score-sprite" data-action="smoke"></div>
-            <div class="sprite-button start-sprite" data-action="start"></div>
-        </div>
-    </div>
-
-    <script src="js/utils.js"></script>
     <script src="js/bird.js"></script>
     <script src="js/pipe.js"></script>
     <script src="js/game.js"></script>

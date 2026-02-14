@@ -35,47 +35,128 @@ body{
     flex-direction: column;
     justify-content: center;
     align-items: center;
-    background: rgba(0, 0, 0, 0.7);
     color: white;
     text-align: center;
 }
 
-.screen h1 {
-    font-size: 48px;
-    margin-bottom: 20px;
-    text-shadow: 3px 3px 0 #000;
-    color: #f7dc6f;
+#startScreen {
+    background: transparent;
+    justify-content: flex-start;
+    padding-top: 100px;
 }
 
-.screen p {
-    font-size: 20px;
-    margin-bottom: 15px;
+#getReadyScreen {
+    background: transparent;
+    justify-content: flex-start;
+    padding-top: 100px;
+}
+
+#gameOverScreen {
+    background: rgba(0, 0, 0, 0.7);
+    justify-content: flex-start;
+    padding-top: 80px;
+    gap: 8px;
 }
 
 .hidden {
     display: none !important;
 }
 
-#restartBtn {
-    padding: 15px 40px;
-    font-size: 20px;
-    background: #f39c12;
-    color: white;
-    border: none;
-    border-radius: 30px;
-    cursor: pointer;
-    margin-top: 20px;
-    transition: transform 0.2s, background 0.2s;
+.get-ready-sprite {
+    background: url('../assets/images/flappybirdassets.png') no-repeat -146px -173px;
+    width: 96px;
+    height: 22px;
+    margin-bottom: 50px;
+    transform: scale(2);
 }
 
-#restartBtn:hover {
-    background: #e67e22;
-    transform: scale(1.1);
+.start-sprite-button {
+    background: url('../assets/images/flappybirdassets.png') no-repeat -242px -213px;
+    width: 40px;
+    height: 14px;
+    cursor: pointer;
+    transition: transform 0.2s;
+    transform: scale(2);
+    margin-top: 180px;
+}
+
+.start-sprite-button:hover {
+    transform: scale(2.1);
+}
+
+.get-ready-text-sprite {
+    background: url('../assets/images/flappybirdassets.png') no-repeat -146px -221px;
+    width: 87px;
+    height: 22px;
+    transform: scale(2);
+    margin-bottom: 140px;
+}
+
+.guidance-sprite {
+    background: url('../assets/images/flappybirdassets.png') no-repeat -172px -122px;
+    width: 39px;
+    height: 49px;
+    margin-top: 85px;
+    margin-left: 30px;
+    transform: scale(2);
+}
+
+.game-over-sprite {
+    background: url('../assets/images/flappybirdassets.png') no-repeat -146px -199px;
+    width: 94px;
+    height: 19px;
+    margin-bottom: 64px;
+    transform: scale(2.2);
+    transform-origin: top center;
+}
+
+.scoreboard-sprite {
+    background: url('../assets/images/flappybirdassets.png') no-repeat -146px -58px;
+    width: 113px;
+    height: 58px;
+    position: relative;
+    transform: scale(2.4);
+    transform-origin: top center;
+    margin-top: 0;
+    margin-bottom: 125px;
 }
 
 #finalScore, #bestScore {
-    color: #f7dc6f;
-    font-weight: bold;
+    position: absolute;
+    right: 20px;
+    width: 50px;
+    text-align: right;
+    font-size: 20px;
+    color: #fff;
+    font-weight: 700;
+    text-shadow: 0 2px 0 rgba(0,0,0,0.5);
+    line-height: 1;
+    transform: scale(0.42);
+    transform-origin: top right;
+}
+
+#finalScore {
+    top: 16px;
+}
+
+#bestScore {
+    top: 38px;
+    right: 15px;
+}
+
+.restart-sprite-button {
+    background: url('../assets/images/flappybirdassets.png') no-repeat -246px -134px;
+    width: 40px;
+    height: 14px;
+    cursor: pointer;
+    margin-top: 20;
+    transition: transform 0.2s;
+    transform: scale(2.2);
+    transform-origin: top center;
+}
+
+.restart-sprite-button:hover {
+    transform: scale(2.3);
 }
 
 .sprite-button {
@@ -118,10 +199,77 @@ body{
     height: 14px;
 }
 
+.play-button-sprite {
+    background: url('../assets/images/flappybirdassets.png') no-repeat -287px -58px;
+    width: 13px;
+    height: 14px;
+    transform: scale(2);
+    margin: 10px;
+}
+
+.pass-sprite {
+    background: url('../assets/images/flappybirdassets.png') no-repeat -287px -84px;
+    width: 13px;
+    height: 14px;
+    transform: scale(2);
+    margin: 10px;
+}
+
 .start-sprite {
     background-position: -246px -118px;
     width: 40px;
     height: 14px;
+}
+
+.features-link {
+    position: absolute;
+    bottom: 30px;
+    color: #FFD700;
+    text-decoration: none;
+    font-size: 16px;
+    font-weight: bold;
+    padding: 8px 16px;
+    border: 2px solid #FFD700;
+    border-radius: 5px;
+    transition: all 0.3s;
+}
+
+.features-link:hover {
+    background: #FFD700;
+    color: #1a1a2e;
+    transform: scale(1.05);
+}
+
+.game-controls {
+    position: absolute;
+    top: 20px;
+    right: 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+    z-index: 100;
+    pointer-events: auto;
+}
+
+.game-controls #toggleBtn {
+    cursor: pointer;
+    transition: transform 0.2s, background-color 0.2s;
+    background-color: rgba(0, 0, 0, 0.5);
+    padding: 8px;
+    border-radius: 5px;
+    border: 2px solid #FFD700;
+    pointer-events: auto;
+    user-select: none;
+    touch-action: manipulation;
+}
+
+.game-controls #toggleBtn:hover {
+    transform: scale(1.1);
+    background-color: rgba(0, 0, 0, 0.7);
+}
+
+.game-controls #toggleBtn:active {
+    transform: scale(0.95);
 }
 
 .settings-overlay {

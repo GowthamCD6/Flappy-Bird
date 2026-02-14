@@ -5,8 +5,8 @@ class Bird {
 
         this.width = 51;
         this.height = 36;
-        this.x = canvas.width / 4;
-        this.y = canvas.height / 2;
+        this.x = canvas.width / 2 - this.width / 2;
+        this.y = canvas.height / 2.7;
 
         this.velocity = 0;
         this.gravity = 0.15;
@@ -14,10 +14,8 @@ class Bird {
 
         this.rotation = 0;
 
-        // Initialize flag first
         this.spriteLoaded = false;
 
-        // Load sprite sheet - set onload BEFORE src
         this.spriteSheet = new Image();
         this.spriteSheet.onload = () => {
             this.spriteLoaded = true;
@@ -39,10 +37,9 @@ class Bird {
         this.frameInterval = 100;
         this.lastFrameTime = 0;
         
-        // Auto-fly properties for start screen
         this.autoFlyTime = 0;
         this.autoFlySpeed = 0.02;
-        this.baseY = canvas.height / 2;
+        this.baseY = canvas.height / 2.7;
         this.autoFlyAmplitude = 15;
     }
 
@@ -52,7 +49,8 @@ class Bird {
         this.rotation = 0;
         this.currentFrame = 0;
         this.autoFlyTime = 0;
-        this.baseY = this.canvas.height / 2;
+        this.baseY = this.canvas.height / 2.7;
+        this.autoFlyAmplitude = 15;
     }
 
     flap() {
@@ -62,7 +60,6 @@ class Bird {
     update(currentTime) {
         this.velocity += this.gravity;
         
-        // Limit falling speed to make it more manageable
         if (this.velocity > 6) {
             this.velocity = 6;
         }
@@ -78,14 +75,12 @@ class Bird {
     }
     
     updateAutoFly(currentTime) {
-        // Smooth hovering motion for start screen
+
         this.autoFlyTime += this.autoFlySpeed;
         this.y = this.baseY + Math.sin(this.autoFlyTime) * this.autoFlyAmplitude;
         
-        // Keep rotation neutral
         this.rotation = 0;
         
-        // Animate wings
         if (currentTime - this.lastFrameTime > this.frameInterval) {
             this.currentFrame = (this.currentFrame + 1) % this.frames.length;
             this.lastFrameTime = currentTime;
@@ -123,13 +118,11 @@ class Bird {
    drawFallbackBird() {
         const ctx = this.ctx;
         
-        // Body
         ctx.fillStyle = '#f4d03f';
         ctx.beginPath();
         ctx.ellipse(0, 0, this.width / 2, this.height / 2, 0, 0, Math.PI * 2);
         ctx.fill();
         
-        // Eye
         ctx.fillStyle = 'white';
         ctx.beginPath();
         ctx.arc(10, -5, 8, 0, Math.PI * 2);
@@ -140,7 +133,6 @@ class Bird {
         ctx.arc(12, -5, 4, 0, Math.PI * 2);
         ctx.fill();
         
-        // Beak
         ctx.fillStyle = '#e74c3c';
         ctx.beginPath();
         ctx.moveTo(15, 2);
