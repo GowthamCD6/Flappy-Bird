@@ -57,6 +57,9 @@ class Game {
             if (e.code === 'Space') {
                 e.preventDefault();
                 this.handleInput();
+            } else if (e.code === 'KeyP' || e.code === 'Escape') {
+                e.preventDefault();
+                this.togglePause();
             }
         });
 
@@ -98,6 +101,22 @@ class Game {
                 this.handleInput();
             });
         }
+        
+        const shopBtn = document.getElementById('shopBtn');
+        if (shopBtn) {
+            shopBtn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                this.openShop();
+            });
+        }
+        
+        const closeShopBtn = document.getElementById('closeShopBtn');
+        if (closeShopBtn) {
+            closeShopBtn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                this.closeShop();
+            });
+        }
     }
 
     handleInput() {
@@ -126,6 +145,20 @@ class Game {
     
     toggleSettings() {
         this.showSettings = !this.showSettings;
+    }
+
+    openShop() {
+        const shopScreen = document.getElementById('shopScreen');
+        if (shopScreen) {
+            shopScreen.classList.remove('hidden');
+        }
+    }
+
+    closeShop() {
+        const shopScreen = document.getElementById('shopScreen')
+        if (shopScreen) {
+            shopScreen.classList.add('hidden');
+        }
     }
 
     startGame() {
