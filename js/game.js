@@ -44,6 +44,10 @@ class Game {
 
         this.bindEvents();
 
+        // Initialize coin system
+        coinSystem.init('coinDisplay');
+        coinSystem.reset();
+
         this.lastTime = 0;
         this.gameLoop(0);
     }
@@ -205,6 +209,11 @@ class Game {
 
         document.getElementById('finalScore').textContent = this.score;
         document.getElementById('bestScore').textContent = this.highScore;
+        
+        // Show coin/medal based on final score
+        coinSystem.updateCoin(this.score);
+        coinSystem.show();
+        
         document.getElementById('gameOverScreen').classList.remove('hidden');
     }
 
@@ -225,6 +234,9 @@ class Game {
         this.pipeManager.reset();
         this.bgX = 0;
         this.groundX = 0;
+
+        // Reset coin system
+        coinSystem.reset();
 
         this.gameState = 'start';
 

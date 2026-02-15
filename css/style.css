@@ -121,6 +121,14 @@ body{
     margin-bottom: 125px;
 }
 
+.scoreboard-sprite #coinDisplay {
+    position: absolute;
+    left:13px;
+    top: 57%;
+    transform: translateY(-50%) scale(1);
+    transform-origin: center;
+}
+
 #finalScore, #bestScore {
     position: absolute;
     right: 20px;
@@ -296,5 +304,30 @@ body{
 }
 
 .hidden{
+    display: none !important;
+}
+
+.bronze-coin {
+    background: url('../assets/images/flappybirdassets.png') no-repeat -302px -137px;
+    width: 22px;
+    height: 22px;
+    display: inline-block;
+}
+
+.silver-coin {
+    background: url('../assets/images/flappybirdassets.png') no-repeat -266px -229px;
+    width: 22px;
+    height: 22px;
+    display: inline-block;
+}
+
+.gold-coin {
+    background: url('../assets/images/flappybirdassets.png') no-repeat -242px -229px;
+    width: 22px;
+    height: 22px;
+    display: inline-block;
+}
+
+.coin-hidden {
     display: none !important;
 }
