@@ -1,16 +1,16 @@
-*{
+* {
     margin: 0;
     padding: 0;
     box-sizing: border-box;
 }
 
-body{
+body {
     display: flex;
     justify-content: center;
     align-items: center;
     min-height: 100vh;
     background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
-    font-family: 'Segoe UI' , 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    font-family: 'Segoe UI', 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
 }
 
 .game-container {
@@ -137,13 +137,14 @@ body{
 
 .scoreboard-sprite #coinDisplay {
     position: absolute;
-    left:13px;
+    left: 13px;
     top: 57%;
     transform: translateY(-50%) scale(1);
     transform-origin: center;
 }
 
-#finalScore, #bestScore {
+#finalScore,
+#bestScore {
     position: absolute;
     right: 20px;
     width: 50px;
@@ -151,7 +152,7 @@ body{
     font-size: 20px;
     color: #fff;
     font-weight: 700;
-    text-shadow: 0 2px 0 rgba(0,0,0,0.5);
+    text-shadow: 0 2px 0 rgba(0, 0, 0, 0.5);
     line-height: 1;
     transform: scale(0.42);
     transform-origin: top right;
@@ -318,7 +319,7 @@ body{
     align-items: center;
 }
 
-.hidden{
+.hidden {
     display: none !important;
 }
 
@@ -360,6 +361,49 @@ body{
     position: relative;
 }
 
+.shield-sprite {
+    background: url('../assets/images/flappybirdassets(1).png') no-repeat -433px -102px;
+    width: 22px;
+    height: 22px;
+}
+
+.power-sprite {
+    background: url('../assets/images/flappybirdassets(1).png') no-repeat -434px -128px;
+    width: 22px;
+    height: 22px;
+}
+
+.anti-bomb-sprite {
+    background: url('../assets/images/flappybirdassets(1).png') no-repeat -382px -102px;
+    width: 22px;
+    height: 22px;
+}
+
+.shop-item {
+    position: absolute;
+    cursor: pointer;
+    transition: transform 0.2s;
+}
+
+.shop-item-1 {
+    top: 30px;
+    left: 15px;
+}
+
+.shop-item-2 {
+    top: 30px;
+    left: 46px;
+}
+
+.shop-item-3 {
+    top: 30px;
+    right: 15px;
+}
+
+.shop-item:hover {
+    transform: scale(1.2);
+}
+
 .close-shop-button {
     position: absolute;
     top: 50px;
@@ -383,4 +427,53 @@ body{
 .close-shop-button:hover {
     background: #ff4757;
     transform: scale(1.1);
+}
+
+
+.top-pipe-sprite {
+    background: url('../assets/images/flappybirdassets.png') no-repeat -320px 0;
+    width: 26px;
+    height: 135px;
+}
+
+.bottom-pipe-sprite {
+    background: url('../assets/images/flappybirdassets.png') no-repeat -330px 0;
+    width: 26px;
+    height: 121px;
+}
+
+.power-btn-container {
+    position: absolute;
+    bottom: 100px;
+    left: 20px;
+    z-index: 100;
+    pointer-events: auto;
+}
+
+.power-btn {
+    cursor: pointer;
+    background-color: rgba(0, 0, 0, 0.5);
+    padding: 8px;
+    border-radius: 8px;
+    border: 2px solid #FFD700;
+    transform: scale(1.5);
+    transition: transform 0.2s, background-color 0.2s;
+    pointeer-events: auto;
+    user-select: none;
+    touch-action: manipulation;
+}
+
+.power-btn:hover {
+    transform: scale(1.7);
+    background-color: rgba(0, 0, 0, 0.7);
+}
+
+.power-btn:active {
+    transform: scale(1.3);
+}
+
+.power-btn.power-used {
+    opacity: 0.3;
+    pointer-events: none;
+    border-color: #666;
 }

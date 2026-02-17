@@ -11,18 +11,19 @@ class Pipe {
         this.x = x;
         this.speed = 2;
 
-        this.topPipeSprite = {
-            x: 330,
-            y: 0,
-            width: 26,
-            height: 121
-        };
-
-        this.bottomPipeSprite = {
-            x: 302,
-            y: 0,
-            width: 26,
-            height: 135
+        this.sprites = {
+            topPipe: {
+                x: 302,
+                y: 0,
+                width: 26,
+                height: 135
+            },
+            bottomPipe: {
+                x: 330,
+                y: 0,
+                width: 26,
+                height: 121
+            }
         };
 
         const minTop = 80;
@@ -41,35 +42,62 @@ class Pipe {
         const ctx = this.ctx;
 
         if (this.spriteLoaded && this.spriteSheet) {
-            ctx.save();
-            ctx.translate(this.x + this.width / 2, this.topHeight);
-            ctx.scale(1, -1);
+            const capHeight = 12
+
+            const topSpr = this.sprites.topPipe;
+                    const topBodySrcY = topSpr.y;
+                    const topBodySrcH = topSpr.height - capHeight;
+                    const topCapSrcY = topSpr.y + topSpr.height - capHeight;
+
+                    const topBodyDrawH = this.topHeight - capHeight;
+                    if (topBodyDrawH > 0) {
+                        for (let y = 0; y < topBodyDrawH; y += topBodySrcH) {
+                            const h = Math.min(topBodySrcH, topBodyDrawH - y);
+                            ctx.drawImage(
+                                this.spriteSheet,
+                                topSpr.x, topBodySrcY,
+                                topSpr.width, h,
+                                this.x, y,
+                                this.width, h
+                            );
+                        }
+                    }
 
             ctx.drawImage(
                 this.spriteSheet,
-                this.topPipeSprite.x,
-                this.topPipeSprite.y,
-                this.topPipeSprite.width,
-                this.topPipeSprite.height,
-                -this.width / 2,
-                0,
-                this.width,
-                this.topHeight
+                topSpr.x, topCapSrcY,
+                topSpr.width, capHeight,
+                this.x - 3, this.topHeight - capHeight,
+                this.width + 6, capHeight
             );
-            ctx.restore();
 
-            const bottomHeight = this.canvas.height - this.bottomY;
+            const btmSpr = this.sprites.bottomPipe;
+            const btmCapSrcY = btmSpr.y;
+            const btmBodySrcY = btmSpr.y + capHeight;
+            const btmBodySrcH = btmSpr.height - capHeight;
+
             ctx.drawImage(
                 this.spriteSheet,
-                this.bottomPipeSprite.x,
-                this.bottomPipeSprite.y,
-                this.bottomPipeSprite.width,
-                this.bottomPipeSprite.height,
-                this.x,
-                this.bottomY,
-                this.width,
-                bottomHeight
+                btmSpr.x, btmCapSrcY,
+                btmSpr.width, capHeight,
+                this.x - 3, this.bottomY,
+                this.width + 6, capHeight
             );
+
+            const btmBodyStartY = this.bottomY + capHeight;
+            const btmBodyDrawH = this.canvas.height - btmBodyStartY;
+            if (btmBodyDrawH > 0) {
+                for (let y = 0; y < btmBodyDrawH; y += btmBodySrcH) {
+                    const h = Math.min(btmBodySrcH, btmBodyDrawH - y);
+                    ctx.drawImage(
+                        this.spriteSheet,
+                        btmSpr.x, btmBodySrcY,
+                        btmSpr.width, h,
+                        this.x, btmBodyStartY + y,
+                        this.width, h
+                    );
+                }
+            }
         } else {
             this.drawFallbackPipes();
         }
@@ -150,6 +178,12 @@ class PipeManager {
     reset() {
         this.pipes = [];
         this.lastSpawnTime = 0;
+    }
+
+    updateSpeed(speed) {
+        this.pipes.forEach(pipe => {
+            pipe.speed = speed;
+        });
     }
 
     update(currentTime) {

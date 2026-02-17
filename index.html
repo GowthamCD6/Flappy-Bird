@@ -29,17 +29,25 @@
             <div id="restartBtn" class="restart-sprite-button"></div>
         </div>
         <div id="shopScreen" class="screen hidden">
-            <div class="shop-content-sprite"></div>
+            <div class="shop-content-sprite">
+                <div class="shield-sprite shop-item shop-item-1"></div>
+                <div class="power-sprite shop-item shop-item-2"></div>
+                <div class="anti-bomb-sprite shop-item shop-item-3"></div>
+            </div>
             <div id="closeShopBtn" class="close-shop-button">✕</div>
         </div>
         <div id="gameControls" class="game-controls hidden">
             <div class="pass-sprite" id="toggleBtn" title="Pause Game"></div>
+        </div>
+        <div id="powerBtnContainer" class="power-btn-container hidden">
+            <div id="powerBtn" class="power-sprite power-btn" title="Activate Power"></div>
         </div>
     </div>
 
     <script src="js/bird.js"></script>
     <script src="js/pipe.js"></script>
     <script src="js/coin.js"></script>
+    <script src="js/powerup.js"></script>
     <script src="js/game.js"></script>
 </body>
 </html>

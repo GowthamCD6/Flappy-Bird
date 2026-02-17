@@ -48,6 +48,9 @@ class Game {
         coinSystem.init('coinDisplay');
         coinSystem.reset();
 
+        // Initialize power-up system
+        powerUpSystem.init(this.bird, this.canvas);
+
         this.lastTime = 0;
         this.gameLoop(0);
     }
@@ -60,6 +63,9 @@ class Game {
             } else if (e.code === 'KeyP' || e.code === 'Escape') {
                 e.preventDefault();
                 this.togglePause();
+            } else if (e.code === 'KeyQ') {
+                e.preventDefault();
+                this.activatePower(performance.now());
             }
         });
 
@@ -117,6 +123,14 @@ class Game {
                 this.closeShop();
             });
         }
+
+        const powerBtn = document.getElementById('powerBtn');
+        if (powerBtn) {
+            powerBtn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                this.activatePower(performance.now());
+            });
+        }
     }
 
     handleInput() {
@@ -161,6 +175,18 @@ class Game {
         }
     }
 
+    activatePower(currentTime) {
+        if (this.gameState !== 'playing') return;
+        if (powerUpSystem.isActive) return;
+
+        const activated = powerUpSystem.activate(currentTime);
+        if (activated) {
+            // Grey out the power button
+            const powerBtn = document.getElementById('powerBtn');
+            if (powerBtn) powerBtn.classList.add('power-used');
+        }
+    }
+
     startGame() {
         this.clearGameOverTimeout();
         this.gameState = 'ready';
@@ -184,6 +210,14 @@ class Game {
 
         const gameControls = document.getElementById('gameControls');
         if (gameControls) gameControls.classList.remove('hidden');
+
+        // Show power button during gameplay
+        const powerBtnContainer = document.getElementById('powerBtnContainer');
+        if (powerBtnContainer) powerBtnContainer.classList.remove('hidden');
+
+        // Reset power button appearance
+        const powerBtn = document.getElementById('powerBtn');
+        if (powerBtn) powerBtn.classList.remove('power-used');
 
         this.syncToggleButton();
 
@@ -235,6 +269,13 @@ class Game {
         const gameControls = document.getElementById('gameControls');
         if (gameControls) gameControls.classList.add('hidden');
 
+        // Hide power button and reset power-up
+        const powerBtnContainer = document.getElementById('powerBtnContainer');
+        if (powerBtnContainer) powerBtnContainer.classList.add('hidden');
+        powerUpSystem.deactivate();
+        // Restore pipe speed
+        this.pipeManager.updateSpeed(2);
+
         if (this.score > this.highScore) {
             this.highScore = this.score;
             saveHighScore(this.score);
@@ -270,6 +311,16 @@ class Game {
 
         // Reset coin system
         coinSystem.reset();
+
+        // Reset power-up system
+        powerUpSystem.reset();
+        this.pipeManager.updateSpeed(2);
+
+        // Hide power button
+        const powerBtnContainer = document.getElementById('powerBtnContainer');
+        if (powerBtnContainer) powerBtnContainer.classList.add('hidden');
+        const powerBtn = document.getElementById('powerBtn');
+        if (powerBtn) powerBtn.classList.remove('power-used');
 
         this.gameState = 'start';
 
@@ -312,14 +363,24 @@ class Game {
             }
 
             if (this.firstInputReceived) {
-                if (this.pipeManager.checkCollision(this.bird)) {
-                    this.gameOver();
-                    return;
-                }
+                // Update power-up system
+                powerUpSystem.update(currentTime);
 
-                if (this.bird.isOutOfBounds(this.groundY)) {
-                    this.gameOver();
-                    return;
+                // Update pipe speed based on power-up
+                this.pipeManager.updateSpeed(powerUpSystem.getPipeSpeed());
+
+                if (powerUpSystem.isInvincible()) {
+                    // Bird is invincible - skip collision checks
+                } else {
+                    if (this.pipeManager.checkCollision(this.bird)) {
+                        this.gameOver();
+                        return;
+                    }
+
+                    if (this.bird.isOutOfBounds(this.groundY)) {
+                        this.gameOver();
+                        return;
+                    }
                 }
 
                 if (this.pipeManager.checkScore(this.bird)) {
@@ -430,6 +491,9 @@ class Game {
         this.drawGround();
 
         this.bird.draw();
+
+        // Draw power-up effects
+        powerUpSystem.draw();
 
         if (this.gameState === 'playing') {
             ctx.fillStyle = 'white';
