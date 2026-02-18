@@ -49,6 +49,8 @@ class Game {
 
     shieldSystem.init(this.bird, this.canvas);
 
+    rocketSystem.init(this.bird, this.canvas);
+
     powerUpSystem.init(this.bird, this.canvas);
 
     const powerBtnContainer = document.getElementById("powerBtnContainer");
@@ -74,6 +76,9 @@ class Game {
       } else if (e.code === "KeyQ") {
         e.preventDefault();
         this.activatePower(performance.now());
+      } else if (e.code === "KeyE") {
+        e.preventDefault();
+        this.activateShield();
       }
     });
 
@@ -369,6 +374,8 @@ class Game {
 
     shieldSystem.reset();
 
+    rocketSystem.reset();
+
     const powerBtnContainer = document.getElementById("powerBtnContainer");
     if (powerBtnContainer) powerBtnContainer.classList.add("hidden");
 
@@ -450,12 +457,27 @@ class Game {
         if (this.pipeManager.checkScore(this.bird)) {
           this.score++;
         }
+
+        // Rocket system - launches rockets after score >= 10
+        rocketSystem.update(this.score);
+
+        if (!powerUpSystem.isInvincible()) {
+          if (rocketSystem.checkCollision(this.bird)) {
+            this.gameOver();
+            return;
+          }
+        }
       }
 
       this.groundX -= 3;
       if (this.groundX <= -20) {
         this.groundX = 0;
       }
+    }
+
+    // Keep explosion animations running even after game over
+    if (this.gameState === "gameOver") {
+      rocketSystem.updateExplosions();
     }
   }
 
@@ -567,6 +589,8 @@ class Game {
     powerUpSystem.draw();
 
     shieldSystem.draw();
+
+    rocketSystem.draw();
 
     if (this.gameState === "playing") {
       ctx.fillStyle = "white";
