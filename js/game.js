@@ -419,9 +419,7 @@ class Game {
       if (this.firstInputReceived) {
         powerUpSystem.update(currentTime);
 
-        shieldSystem.update(currentTime);
-
-        this.updateShieldButton();
+        shieldSystem.update();
 
         this.updateShieldButton();
 
@@ -431,7 +429,11 @@ class Game {
         } else {
           if (this.pipeManager.checkCollision(this.bird)) {
             if (shieldSystem.onPipeHit()) {
-              console.log("Shield protected the bird!");
+              const destroyedPipe = this.pipeManager.destroyCollidingPipe(this.bird);
+              if (destroyedPipe) {
+                shieldSystem.spawnPipeBreakParticles(destroyedPipe);
+              }
+              console.log("Shield protected the bird! Pipe destroyed!");
               this.updateShieldButton();
             } else {
               this.gameOver();

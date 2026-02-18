@@ -22,6 +22,8 @@ class ShieldSystem {
         
         this.breakTimer = 0;
         this.isBreaking = false;
+
+        this.pipeBreakParticles = [];
     }
 
     init(bird, canvas) {
@@ -54,34 +56,33 @@ class ShieldSystem {
     }
 
     onPipeHit() {
-        const currentTime = Date.now();
-        if (currentTime - this.lastHitTime < this.hitCooldown) {
-            console.log('Hit cooldown active - still protected from recent hit');
-            return true;
-        }
+        const now = Date.now();
 
-        if (!this.isActive) {
+        // Shield is not active at all - bird should die
+        if (!this.isActive && !this.isBreaking) {
             return false;
         }
 
-        this.lastHitTime = currentTime;
+        // Shield is in breaking animation - still protected briefly
+        if (this.isBreaking) {
+            return true;
+        }
+
+        // Prevent rapid duplicate hits from the same pipe
+        if (now - this.lastHitTime < this.hitCooldown) {
+            return true;
+        }
+
+        this.lastHitTime = now;
         this.hitsProtected++;
         this.shieldHealth--;
-        
-        let colorIndicator = '';
-        if (this.shieldHealth === 3) colorIndicator = '🔵 BLUE';
-        else if (this.shieldHealth === 2) colorIndicator = '🟡 YELLOW';
-        else if (this.shieldHealth === 1) colorIndicator = '🔴 RED';
-        else colorIndicator = '💥 BREAKING';
-        
-        console.log(`✅ Shield absorbed hit ${this.hitsProtected}/3! Remaining: ${this.shieldHealth} ${colorIndicator}`);
+
+        console.log(`Shield absorbed hit ${this.hitsProtected}/3! Remaining: ${this.shieldHealth}`);
 
         if (this.hitsProtected >= this.maxProtection) {
-            console.log('❌ Shield absorbed 3rd hit! Shield will break after collision resolves...');
-            this.isActive = false;
+            console.log('Shield absorbed 3rd hit! Breaking shield...');
             this.isBreaking = true;
-            this.b
-            akTimer = Date.now();
+            this.breakTimer = now;
         }
 
         return true;
@@ -90,34 +91,38 @@ class ShieldSystem {
     breakShield() {
         this.isActive = false;
         this.isAvailable = false;
+        this.isBreaking = false;
         this.cooldownStart = Date.now();
         this.shieldParticles = [];
         this.shieldHealth = 0;
+        this.hitsProtected = 0;
         this.lastHitTime = 0;
-        this.isBreaking = false; 
-        console.log('💥 Shield broken after 3 hits! Entering brief 2-second cooldown...');
+        this.breakTimer = 0;
+        console.log('Shield broken! Cooldown started.');
     }
 
-    update(currentTime) {
+    update() {
+        const now = Date.now();
+
         if (this.isBreaking) {
-            const breakElapsed = currentTime - this.breakTimer;
-            if (breakElapsed >= 300) {
+            if (now - this.breakTimer >= 300) {
                 this.breakShield();
             }
         }
-        
-        if (!this.isAvailable && !this.isActive) {
-            const cooldownElapsed = currentTime - this.cooldownStart;
-            if (cooldownElapsed >= this.cooldownTime) {
+
+        if (!this.isAvailable && !this.isActive && !this.isBreaking) {
+            if (now - this.cooldownStart >= this.cooldownTime) {
                 this.isAvailable = true;
                 console.log('Shield ready for reactivation!');
             }
         }
 
+        this.updatePipeBreakParticles();
+
         if (!this.isActive) return;
 
         this.shieldRotation += 2;
-        this.pulseIntensity = Math.sin(currentTime * 0.01) * 0.5 + 0.5;
+        this.pulseIntensity = Math.sin(Date.now() * 0.01) * 0.5 + 0.5;
 
         const healthRatio = this.shieldHealth / this.maxProtection;
         this.pulseIntensity *= healthRatio;
@@ -128,6 +133,68 @@ class ShieldSystem {
         }
 
         this.updateShieldParticles();
+    }
+
+   spawnPipeBreakParticles(pipeInfo) {
+        const colors = ['#73BF2E', '#558B2F', '#8BC34A', '#4CAF50', '#A5D6A7'];
+        const particleCount = 20;
+
+        for (let i = 0; i < particleCount; i++) {
+            const spawnX = pipeInfo.x + (Math.random() - 0.5) * pipeInfo.width;
+            let spawnY;
+            if (pipeInfo.hitTop && pipeInfo.hitBottom) {
+                spawnY = Math.random() > 0.5 ? pipeInfo.topY : pipeInfo.bottomY;
+            } else if (pipeInfo.hitTop) {
+                spawnY = pipeInfo.topY;
+            } else {
+                spawnY = pipeInfo.bottomY;
+            }
+            spawnY += (Math.random() - 0.5) * 40;
+
+            this.pipeBreakParticles.push({
+                x: spawnX,
+                y: spawnY,
+                vx: (Math.random() - 0.5) * 8,
+                vy: (Math.random() - 0.5) * 8 - 2,
+                size: 4 + Math.random() * 6,
+                rotation: Math.random() * 360,
+                rotationSpeed: (Math.random() - 0.5) * 15,
+                alpha: 1,
+                life: 40 + Math.random() * 20,
+                maxLife: 60,
+                color: colors[Math.floor(Math.random() * colors.length)],
+                gravity: 0.2
+            });
+        }
+    }
+
+    updatePipeBreakParticles() {
+        for (let i = this.pipeBreakParticles.length - 1; i >= 0; i--) {
+            const p = this.pipeBreakParticles[i];
+            p.x += p.vx;
+            p.y += p.vy;
+            p.vy += p.gravity;
+            p.rotation += p.rotationSpeed;
+            p.life--;
+            p.alpha = Math.max(0, p.life / p.maxLife);
+
+            if (p.life <= 0) {
+                this.pipeBreakParticles.splice(i, 1);
+            }
+        }
+    }
+
+    drawPipeBreakParticles() {
+        const ctx = this.ctx;
+        for (const p of this.pipeBreakParticles) {
+            ctx.save();
+            ctx.globalAlpha = p.alpha;
+            ctx.translate(p.x, p.y);
+            ctx.rotate(p.rotation * Math.PI / 180);
+            ctx.fillStyle = p.color;
+            ctx.fillRect(-p.size / 2, -p.size / 2, p.size, p.size);
+            ctx.restore();
+        }
     }
 
     spawnShieldParticle() {
@@ -183,6 +250,7 @@ class ShieldSystem {
 
     draw() { 
         this.drawShieldButton();
+        this.drawPipeBreakParticles();
 
         if ((!this.isActive && !this.isBreaking) || this.shieldHealth === 0) {
             return;
@@ -381,6 +449,7 @@ class ShieldSystem {
         this.isAvailable = true;
         this.cooldownStart = 0;
         this.shieldParticles = [];
+        this.pipeBreakParticles = [];
         this.particleTimer = 0;
         this.shieldRotation = 0;
         this.pulseIntensity = 0;

@@ -32,6 +32,8 @@ class Pipe {
         this.bottomY = this.topHeight + this.gap;
 
         this.passed = false;
+        this.topDestroyed = false;
+        this.bottomDestroyed = false;
     }
 
     update() {
@@ -42,60 +44,66 @@ class Pipe {
         const ctx = this.ctx;
 
         if (this.spriteLoaded && this.spriteSheet) {
-            const capHeight = 12
+            const capHeight = 12;
 
-            const topSpr = this.sprites.topPipe;
-                    const topBodySrcY = topSpr.y;
-                    const topBodySrcH = topSpr.height - capHeight;
-                    const topCapSrcY = topSpr.y + topSpr.height - capHeight;
+            // Draw top pipe (only if not destroyed)
+            if (!this.topDestroyed) {
+                const topSpr = this.sprites.topPipe;
+                const topBodySrcY = topSpr.y;
+                const topBodySrcH = topSpr.height - capHeight;
+                const topCapSrcY = topSpr.y + topSpr.height - capHeight;
 
-                    const topBodyDrawH = this.topHeight - capHeight;
-                    if (topBodyDrawH > 0) {
-                        for (let y = 0; y < topBodyDrawH; y += topBodySrcH) {
-                            const h = Math.min(topBodySrcH, topBodyDrawH - y);
-                            ctx.drawImage(
-                                this.spriteSheet,
-                                topSpr.x, topBodySrcY,
-                                topSpr.width, h,
-                                this.x, y,
-                                this.width, h
-                            );
-                        }
+                const topBodyDrawH = this.topHeight - capHeight;
+                if (topBodyDrawH > 0) {
+                    for (let y = 0; y < topBodyDrawH; y += topBodySrcH) {
+                        const h = Math.min(topBodySrcH, topBodyDrawH - y);
+                        ctx.drawImage(
+                            this.spriteSheet,
+                            topSpr.x, topBodySrcY,
+                            topSpr.width, h,
+                            this.x, y,
+                            this.width, h
+                        );
                     }
+                }
 
-            ctx.drawImage(
-                this.spriteSheet,
-                topSpr.x, topCapSrcY,
-                topSpr.width, capHeight,
-                this.x - 3, this.topHeight - capHeight,
-                this.width + 6, capHeight
-            );
+                ctx.drawImage(
+                    this.spriteSheet,
+                    topSpr.x, topCapSrcY,
+                    topSpr.width, capHeight,
+                    this.x - 3, this.topHeight - capHeight,
+                    this.width + 6, capHeight
+                );
+            }
 
-            const btmSpr = this.sprites.bottomPipe;
-            const btmCapSrcY = btmSpr.y;
-            const btmBodySrcY = btmSpr.y + capHeight;
-            const btmBodySrcH = btmSpr.height - capHeight;
+            // Draw bottom pipe (only if not destroyed)
+            if (!this.bottomDestroyed) {
+                const btmSpr = this.sprites.bottomPipe;
+                const btmCapSrcY = btmSpr.y;
+                const btmBodySrcY = btmSpr.y + capHeight;
+                const btmBodySrcH = btmSpr.height - capHeight;
 
-            ctx.drawImage(
-                this.spriteSheet,
-                btmSpr.x, btmCapSrcY,
-                btmSpr.width, capHeight,
-                this.x - 3, this.bottomY,
-                this.width + 6, capHeight
-            );
+                ctx.drawImage(
+                    this.spriteSheet,
+                    btmSpr.x, btmCapSrcY,
+                    btmSpr.width, capHeight,
+                    this.x - 3, this.bottomY,
+                    this.width + 6, capHeight
+                );
 
-            const btmBodyStartY = this.bottomY + capHeight;
-            const btmBodyDrawH = this.canvas.height - btmBodyStartY;
-            if (btmBodyDrawH > 0) {
-                for (let y = 0; y < btmBodyDrawH; y += btmBodySrcH) {
-                    const h = Math.min(btmBodySrcH, btmBodyDrawH - y);
-                    ctx.drawImage(
-                        this.spriteSheet,
-                        btmSpr.x, btmBodySrcY,
-                        btmSpr.width, h,
-                        this.x, btmBodyStartY + y,
-                        this.width, h
-                    );
+                const btmBodyStartY = this.bottomY + capHeight;
+                const btmBodyDrawH = this.canvas.height - btmBodyStartY;
+                if (btmBodyDrawH > 0) {
+                    for (let y = 0; y < btmBodyDrawH; y += btmBodySrcH) {
+                        const h = Math.min(btmBodySrcH, btmBodyDrawH - y);
+                        ctx.drawImage(
+                            this.spriteSheet,
+                            btmSpr.x, btmBodySrcY,
+                            btmSpr.width, h,
+                            this.x, btmBodyStartY + y,
+                            this.width, h
+                        );
+                    }
                 }
             }
         } else {
@@ -110,30 +118,35 @@ class Pipe {
         const pipeDarkColor = '#558B2F';
         const pipeCapColor = '#8BC34A';
 
-        ctx.fillStyle = pipeColor;
-        ctx.fillRect(this.x, 0, this.width, this.topHeight);
+        if (!this.topDestroyed) {
+            ctx.fillStyle = pipeColor;
+            ctx.fillRect(this.x, 0, this.width, this.topHeight);
 
-        ctx.fillStyle = pipeDarkColor;
-        ctx.fillRect(this.x, 0, 8, this.topHeight);
+            ctx.fillStyle = pipeDarkColor;
+            ctx.fillRect(this.x, 0, 8, this.topHeight);
 
-        ctx.fillStyle = pipeCapColor;
-        ctx.fillRect(this.x - 5, this.topHeight - 30, this.width + 10, 30);
-        ctx.fillStyle = pipeDarkColor;
-        ctx.fillRect(this.x - 5, this.topHeight - 30, 8, 30);
+            ctx.fillStyle = pipeCapColor;
+            ctx.fillRect(this.x - 5, this.topHeight - 30, this.width + 10, 30);
+            ctx.fillStyle = pipeDarkColor;
+            ctx.fillRect(this.x - 5, this.topHeight - 30, 8, 30);
+        }
 
-        ctx.fillStyle = pipeColor;
-        ctx.fillRect(this.x, this.bottomY, this.width, this.canvas.height - this.bottomY);
+        if (!this.bottomDestroyed) {
+            ctx.fillStyle = pipeColor;
+            ctx.fillRect(this.x, this.bottomY, this.width, this.canvas.height - this.bottomY);
 
-        ctx.fillStyle = pipeDarkColor;
-        ctx.fillRect(this.x, this.bottomY, 8, this.canvas.height - this.bottomY);
+            ctx.fillStyle = pipeDarkColor;
+            ctx.fillRect(this.x, this.bottomY, 8, this.canvas.height - this.bottomY);
 
-        ctx.fillStyle = pipeCapColor;
-        ctx.fillRect(this.x - 5, this.bottomY, this.width + 10, 30);
-        ctx.fillStyle = pipeDarkColor;
-        ctx.fillRect(this.x - 5, this.bottomY, 8, 30);
+            ctx.fillStyle = pipeCapColor;
+            ctx.fillRect(this.x - 5, this.bottomY, this.width + 10, 30);
+            ctx.fillStyle = pipeDarkColor;
+            ctx.fillRect(this.x - 5, this.bottomY, 8, 30);
+        }
     }
 
     getTopBounds() {
+        if (this.topDestroyed) return null;
         return {
             x: this.x,
             y: 0,
@@ -143,6 +156,7 @@ class Pipe {
     }
 
     getBottomBounds() {
+        if (this.bottomDestroyed) return null;
         return {
             x: this.x,
             y: this.bottomY,
@@ -213,12 +227,44 @@ class PipeManager {
         const birdBounds = bird.getBounds();
 
         for (let pipe of this.pipes) {
-            if (checkCollision(birdBounds, pipe.getTopBounds()) ||
-                checkCollision(birdBounds, pipe.getBottomBounds())) {
+            const topBounds = pipe.getTopBounds();
+            const bottomBounds = pipe.getBottomBounds();
+            if ((topBounds && checkCollision(birdBounds, topBounds)) ||
+                (bottomBounds && checkCollision(birdBounds, bottomBounds))) {
                 return true;
             }
         }
         return false;
+    }
+
+        destroyCollidingPipe(bird) {
+        const birdBounds = bird.getBounds();
+
+        for (let i = 0; i < this.pipes.length; i++) {
+            const pipe = this.pipes[i];
+            const topBounds = pipe.getTopBounds();
+            const bottomBounds = pipe.getBottomBounds();
+            const hitTop = topBounds && checkCollision(birdBounds, topBounds);
+            const hitBottom = bottomBounds && checkCollision(birdBounds, bottomBounds);
+
+            if (hitTop || hitBottom) {
+                const pipeInfo = {
+                    x: pipe.x + pipe.width / 2,
+                    topY: pipe.topHeight,
+                    bottomY: pipe.bottomY,
+                    width: pipe.width,
+                    hitTop: !!hitTop,
+                    hitBottom: !!hitBottom
+                };
+
+                // Only destroy the half that was hit
+                if (hitTop) pipe.topDestroyed = true;
+                if (hitBottom) pipe.bottomDestroyed = true;
+
+                return pipeInfo;
+            }
+        }
+        return null;
     }
 
     checkScore(bird) {
