@@ -1,20 +1,28 @@
-class Rocket {
-    constructor(canvas, rocketImage, imageLoaded) {
+﻿class Rocket {
+    constructor(canvas, rocketImage, imageLoaded, customY = null, customSpeed = null, customXOffset = 0) {
         this.canvas = canvas;
         this.ctx = canvas.getContext('2d');
 
         this.rocketImage = rocketImage;
         this.imageLoaded = imageLoaded;
 
-        this.width = 56;
-        this.height = 40;
+        this.width = 45;
+        this.height = 56;
 
-        this.x = canvas.width + this.width;
-        const minY = 60;
-        const maxY = canvas.height - 140;
-        this.y = minY + Math.random() * (maxY - minY);
+        // Start position with custom X offset for staggered formation
+        this.x = canvas.width + this.width + customXOffset;
+        
+        // Use custom Y if provided, otherwise random
+        if (customY !== null) {
+            this.y = customY;
+        } else {
+            const minY = 60;
+            const maxY = canvas.height - 140;
+            this.y = minY + Math.random() * (maxY - minY);
+        }
 
-        this.speed = 3 + Math.random() * 2;
+        // Use custom speed if provided, otherwise random (reduced speed)
+        this.speed = customSpeed !== null ? customSpeed : (1.5 + Math.random() * 1);
 
         this.sprite = {
             x: 138,
@@ -26,12 +34,22 @@ class Rocket {
         this.trail = [];
         this.trailTimer = 0;
 
-
         this.warningAlpha = 1;
         this.warningPhase = 0;
         this.showWarning = true;
-        this.warningDuration = 800; 
+        this.warningDuration = 800;
         this.spawnTime = Date.now();
+
+        // Gravity properties
+        this.velocityY = 0;
+        this.affectedByGravity = false;
+        this.gravityStrength = 0.5;
+        this.rotation = 0;
+    }
+
+    applyGravity() {
+        this.affectedByGravity = true;
+        this.velocityY = 0;
     }
 
     update() {
@@ -46,6 +64,16 @@ class Rocket {
 
         this.showWarning = false;
         this.x -= this.speed;
+
+        // Apply gravity effect if activated
+        if (this.affectedByGravity) {
+            this.velocityY += this.gravityStrength;
+            this.y += this.velocityY;
+            this.rotation += 0.1; // Rotate as it falls
+            
+            // Reduce horizontal speed when falling
+            this.speed *= 0.98;
+        }
 
         this.trailTimer++;
         if (this.trailTimer % 2 === 0) {
@@ -102,22 +130,22 @@ class Rocket {
         }
 
         for (const p of this.trail) {
-            ctx.save();
             ctx.globalAlpha = p.alpha;
-            const gradient = ctx.createRadialGradient(p.x, p.y, 0, p.x, p.y, p.size);
-            gradient.addColorStop(0, '#FFA500');
-            gradient.addColorStop(0.5, '#FF4500');
-            gradient.addColorStop(1, 'rgba(255, 0, 0, 0)');
-            ctx.fillStyle = gradient;
+            ctx.fillStyle = '#FFA500';
             ctx.beginPath();
             ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
             ctx.fill();
-            ctx.restore();
         }
 
         ctx.save();
         ctx.translate(this.x + this.width / 2, this.y + this.height / 2);
-        ctx.rotate(-Math.PI / 2);
+        
+        // Rotate based on gravity state
+        if (this.affectedByGravity) {
+            ctx.rotate(-Math.PI / 2 + this.rotation);
+        } else {
+            ctx.rotate(-Math.PI / 2);
+        }
 
         if (this.imageLoaded && this.rocketImage) {
             ctx.drawImage(
@@ -198,7 +226,8 @@ class Rocket {
     }
 
     isOffScreen() {
-        return this.x + this.width < -20;
+        // Also check if rocket fell below screen
+        return this.x + this.width < -20 || this.y > this.canvas.height + 50;
     }
 
     isActive() {
@@ -216,10 +245,18 @@ class RocketSystem {
         this.rockets = [];
         this.explosions = [];
 
+        // Wave system configuration
         this.scoreThreshold = 10;
-        this.spawnInterval = 3000;
-        this.minSpawnInterval = 1500;
+        this.nextWaveScore = 10;
+        this.formationsPerWave = 3;
+        this.formationsSpawnedInWave = 0;
+        this.waveActive = false;
+
+        // Spawn timing
+        this.minSpawnInterval = 15000;
+        this.maxSpawnInterval = 20000;
         this.lastSpawnTime = 0;
+        this.nextSpawnDelay = 0;
 
         this.spriteLoaded = false;
         this.rocketImage = new Image();
@@ -240,16 +277,24 @@ class RocketSystem {
     }
 
     update(score) {
-        if (score < this.scoreThreshold) return;
-
         const now = Date.now();
 
-        const difficulty = Math.min((score - this.scoreThreshold) / 30, 1);
-        const currentInterval = this.spawnInterval - difficulty * (this.spawnInterval - this.minSpawnInterval);
+        if (!this.waveActive && score >= this.nextWaveScore) {
+            this.startNewWave();
+        }
 
-        if (now - this.lastSpawnTime > currentInterval) {
-            this.spawnRocket();
-            this.lastSpawnTime = now;
+        if (this.waveActive && this.formationsSpawnedInWave < this.formationsPerWave) {
+            if (now - this.lastSpawnTime >= this.nextSpawnDelay) {
+                this.spawnRocket();
+                this.lastSpawnTime = now;
+                this.formationsSpawnedInWave++;
+
+                this.nextSpawnDelay = this.minSpawnInterval + Math.random() * (this.maxSpawnInterval - this.minSpawnInterval);
+
+                if (this.formationsSpawnedInWave >= this.formationsPerWave) {
+                    this.endWave();
+                }
+            }
         }
 
         for (let i = this.rockets.length - 1; i >= 0; i--) {
@@ -262,14 +307,70 @@ class RocketSystem {
         this.updateExplosions();
     }
 
-    spawnRocket() {
-        const rocket = new Rocket(this.canvas, this.rocketImage, this.spriteLoaded);
+    startNewWave() {
+        this.waveActive = true;
+        this.formationsSpawnedInWave = 0;
+        this.lastSpawnTime = Date.now();
+        this.nextSpawnDelay = 2000 + Math.random() * 3000;
+        console.log('Rocket wave started! Score:', this.nextWaveScore);
+    }
 
-        if (this.rockets.length > 0) {
-            rocket.speed += this.rockets.length * 0.5;
+    endWave() {
+        this.waveActive = false;
+        this.nextWaveScore += 10;
+        console.log('Rocket wave ended. Next wave at score:', this.nextWaveScore);
+    }
+
+    spawnRocket() {
+        const rocketHeight = 56;
+        const gapHeight = 150;
+
+        const topMargin = 60;
+        const bottomMargin = 140;
+        const playableHeight = this.canvas.height - topMargin - bottomMargin;
+
+        const zoneHeight = (playableHeight - gapHeight) / 3;
+
+        const gapPosition = Math.random() < 0.5 ? 1 : 2;
+
+        const formationSpeed = 1.8 + Math.random() * 0.7;
+
+        const xOffsets = [
+            0,
+            100 + Math.random() * 50,
+            220 + Math.random() * 80
+        ];
+
+        for (let i = xOffsets.length - 1; i > 0; i--) {
+            const j = Math.floor(Math.random() * (i + 1));
+            [xOffsets[i], xOffsets[j]] = [xOffsets[j], xOffsets[i]];
         }
 
-        this.rockets.push(rocket);
+        let yPositions = [];
+
+        if (gapPosition === 1) {
+            yPositions.push(topMargin + Math.random() * 30);
+            yPositions.push(topMargin + zoneHeight + gapHeight + Math.random() * 30);
+            yPositions.push(this.canvas.height - bottomMargin - rocketHeight - Math.random() * 30);
+        } else {
+            yPositions.push(topMargin + Math.random() * 30);
+            yPositions.push(topMargin + zoneHeight + Math.random() * 30);
+            yPositions.push(this.canvas.height - bottomMargin - rocketHeight - Math.random() * 30);
+        }
+
+        for (let i = 0; i < 3; i++) {
+            const rocket = new Rocket(
+                this.canvas,
+                this.rocketImage,
+                this.spriteLoaded,
+                yPositions[i],
+                formationSpeed,
+                xOffsets[i]
+            );
+            this.rockets.push(rocket);
+        }
+
+        console.log('Rocket formation spawned! Gap position:', gapPosition === 1 ? 'UPPER' : 'LOWER', 'Speed:', formationSpeed.toFixed(2));
     }
 
     checkCollision(bird) {
@@ -299,8 +400,8 @@ class RocketSystem {
     }
 
     spawnExplosion(x, y) {
-        const colors = ['#FF4500', '#FFA500', '#FFD700', '#FF0000', '#FF6347', '#FFFF00', '#FFFFFF'];
-        const particleCount = 40;
+        const colors = ['#FF4500', '#FFA500', '#FFD700', '#FF0000', '#FFFF00'];
+        const particleCount = 20;
 
         const explosion = {
             particles: [],
@@ -311,37 +412,37 @@ class RocketSystem {
         };
 
         for (let i = 0; i < particleCount; i++) {
-            const angle = (Math.PI * 2 / particleCount) * i + (Math.random() - 0.5) * 0.5;
-            const speed = 2 + Math.random() * 6;
+            const angle = (Math.PI * 2 / particleCount) * i;
+            const speed = 2 + Math.random() * 5;
 
             explosion.particles.push({
                 x: x,
                 y: y,
                 vx: Math.cos(angle) * speed,
                 vy: Math.sin(angle) * speed,
-                size: 3 + Math.random() * 5,
+                size: 3 + Math.random() * 4,
                 alpha: 1,
-                life: 30 + Math.random() * 25,
-                maxLife: 55,
-                color: colors[Math.floor(Math.random() * colors.length)],
+                life: 30,
+                maxLife: 30,
+                color: colors[i % colors.length],
                 gravity: 0.08,
                 decay: 0.96
             });
         }
 
-        for (let i = 0; i < 15; i++) {
-            const angle = Math.random() * Math.PI * 2;
-            const speed = 1 + Math.random() * 3;
+        for (let i = 0; i < 6; i++) {
+            const angle = (Math.PI * 2 / 6) * i;
+            const speed = 1.5;
 
             explosion.particles.push({
                 x: x,
                 y: y,
                 vx: Math.cos(angle) * speed,
                 vy: Math.sin(angle) * speed,
-                size: 6 + Math.random() * 8,
-                alpha: 0.6,
-                life: 40 + Math.random() * 20,
-                maxLife: 60,
+                size: 10,
+                alpha: 0.5,
+                life: 40,
+                maxLife: 40,
                 color: '#555555',
                 gravity: -0.02,
                 decay: 0.97
@@ -432,24 +533,11 @@ class RocketSystem {
             }
 
             for (const p of explosion.particles) {
-                ctx.save();
                 ctx.globalAlpha = p.alpha;
-                if (p.color === '#555555') {
-                    ctx.fillStyle = p.color;
-                    ctx.beginPath();
-                    ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
-                    ctx.fill();
-                } else {
-                    const grad = ctx.createRadialGradient(p.x, p.y, 0, p.x, p.y, p.size);
-                    grad.addColorStop(0, '#FFFFFF');
-                    grad.addColorStop(0.3, p.color);
-                    grad.addColorStop(1, 'rgba(255,0,0,0)');
-                    ctx.fillStyle = grad;
-                    ctx.beginPath();
-                    ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
-                    ctx.fill();
-                }
-                ctx.restore();
+                ctx.fillStyle = p.color;
+                ctx.beginPath();
+                ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
+                ctx.fill();
             }
         }
     }
@@ -458,10 +546,37 @@ class RocketSystem {
         return this.explosions.length > 0;
     }
 
+    // Activate gravity power - makes all rockets fall down
+    activateGravityPower() {
+        if (this.rockets.length === 0) {
+            console.log('No rockets to apply gravity to');
+            return false;
+        }
+
+        for (const rocket of this.rockets) {
+            if (!rocket.affectedByGravity) {
+                rocket.applyGravity();
+            }
+        }
+        
+        console.log('Gravity power activated! Rockets falling...');
+        return true;
+    }
+
+    // Check if there are rockets that can be affected by gravity
+    hasActiveRockets() {
+        return this.rockets.some(rocket => rocket.isActive() && !rocket.affectedByGravity);
+    }
+
     reset() {
         this.rockets = [];
         this.explosions = [];
         this.lastSpawnTime = 0;
+
+        this.nextWaveScore = this.scoreThreshold;
+        this.formationsSpawnedInWave = 0;
+        this.waveActive = false;
+        this.nextSpawnDelay = 0;
     }
 }
 

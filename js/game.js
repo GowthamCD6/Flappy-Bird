@@ -3,8 +3,14 @@ class Game {
     this.canvas = document.getElementById("gameCanvas");
     this.ctx = this.canvas.getContext("2d");
 
+    this.ctx.imageSmoothingEnabled = false;
+    this.ctx.webkitImageSmoothingEnabled = false;
+    this.ctx.mozImageSmoothingEnabled = false;
+    this.ctx.msImageSmoothingEnabled = false;
+
     this.canvas.width = 400;
     this.canvas.height = 600;
+    this.resizeCanvas();
     this.spriteLoaded = false;
 
     this.spriteSheet = new Image();
@@ -39,6 +45,13 @@ class Game {
 
     this.gameOverTimeoutId = null;
 
+    // Screen shake effect
+    this.screenShake = {
+      intensity: 0,
+      duration: 0,
+      startTime: 0
+    };
+
     this.groundY = this.canvas.height - 80;
     this.groundX = 0;
 
@@ -51,17 +64,20 @@ class Game {
 
     rocketSystem.init(this.bird, this.canvas);
 
+    gravitySystem.init(this.canvas);
+    gravitySystem.setGroundY(this.groundY);
+
     powerUpSystem.init(this.bird, this.canvas);
 
-    const powerBtnContainer = document.getElementById("powerBtnContainer");
-    if (powerBtnContainer) powerBtnContainer.classList.remove("hidden");
+    portalSystem.init(this.bird, this.canvas);
 
-    const shieldBtnContainer = document.getElementById("shieldBtnContainer");
-    if (shieldBtnContainer) shieldBtnContainer.classList.remove("hidden");
+    const powersContainer = document.getElementById("powersContainer");
+    if (powersContainer) powersContainer.classList.add("hidden");
 
     this.lastTime = 0;
 
     this.setupShieldButton();
+    this.setupGravityButton();
     this.gameLoop(0);
   }
 
@@ -79,10 +95,25 @@ class Game {
       } else if (e.code === "KeyE") {
         e.preventDefault();
         this.activateShield();
+      } else if (e.code === "KeyG") {
+        e.preventDefault();
+        this.activateGravityPower();
       }
     });
 
     this.canvas.addEventListener("click", () => this.handleInput());
+
+    // Touch support for mobile
+    this.canvas.addEventListener("touchstart", (e) => {
+      e.preventDefault();
+      this.handleInput();
+    }, { passive: false });
+
+    // Resize handler for orientation changes
+    window.addEventListener("resize", () => this.resizeCanvas());
+    window.addEventListener("orientationchange", () => {
+      setTimeout(() => this.resizeCanvas(), 100);
+    });
 
     document.addEventListener(
       "pointerdown",
@@ -104,6 +135,10 @@ class Game {
       restartBtn.addEventListener("click", () => {
         this.restart();
       });
+      restartBtn.addEventListener("touchstart", (e) => {
+        e.preventDefault();
+        this.restart();
+      }, { passive: false });
     }
 
     const settingsBtn = document.getElementById("settingsBtn");
@@ -118,6 +153,11 @@ class Game {
         e.stopPropagation();
         this.handleInput();
       });
+      startBtn.addEventListener("touchstart", (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        this.handleInput();
+      }, { passive: false });
     }
 
     const shopBtn = document.getElementById("shopBtn");
@@ -126,6 +166,11 @@ class Game {
         e.stopPropagation();
         this.openShop();
       });
+      shopBtn.addEventListener("touchstart", (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        this.openShop();
+      }, { passive: false });
     }
 
     const closeShopBtn = document.getElementById("closeShopBtn");
@@ -134,6 +179,11 @@ class Game {
         e.stopPropagation();
         this.closeShop();
       });
+      closeShopBtn.addEventListener("touchstart", (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        this.closeShop();
+      }, { passive: false });
     }
 
     const powerBtn = document.getElementById("powerBtn");
@@ -142,6 +192,11 @@ class Game {
         e.stopPropagation();
         this.activatePower(performance.now());
       });
+      powerBtn.addEventListener("touchstart", (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        this.activatePower(performance.now());
+      }, { passive: false });
     }
 
     const shieldBtn = document.getElementById("shieldBtn");
@@ -150,6 +205,11 @@ class Game {
         e.stopPropagation();
         this.activateShield();
       });
+      shieldBtn.addEventListener("touchstart", (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        this.activateShield();
+      }, { passive: false });
     }
   }
 
@@ -159,7 +219,7 @@ class Game {
       return;
     }
 
-    if (this.gameState === "gameOver") {
+    if (this.gameState === "gameOver" || this.gameState === "dying" || this.gameState === "blasting") {
       return;
     }
 
@@ -210,6 +270,33 @@ class Game {
     this.updateShieldButton();
   }
 
+  resizeCanvas() {
+    const container = document.querySelector('.game-container');
+    const vh = window.innerHeight;
+    const vw = window.innerWidth;
+    
+    const gameAspect = 400 / 600;
+    let displayHeight = vh; 
+    let displayWidth = displayHeight * gameAspect;
+    
+    if (displayWidth > vw) {
+      displayWidth = vw;
+      displayHeight = displayWidth / gameAspect;
+    }
+    
+    if (container) {
+      container.style.width = displayWidth + 'px';
+      container.style.height = displayHeight + 'px';
+    }
+    this.canvas.style.width = displayWidth + 'px';
+    this.canvas.style.height = displayHeight + 'px';
+
+    this.ctx.imageSmoothingEnabled = false;
+    this.ctx.webkitImageSmoothingEnabled = false;
+    this.ctx.mozImageSmoothingEnabled = false;
+    this.ctx.msImageSmoothingEnabled = false;
+  }
+
   activateShield() {
     if (this.gameState !== "playing") return;
     if (!shieldSystem.isReady()) return;
@@ -218,6 +305,34 @@ class Game {
     if (activated) {
       console.log("Shield instantly activated! Protection for 3 pipe hits.");
       this.updateShieldButton();
+    }
+  }
+
+  activateGravityPower() {
+    if (this.gameState !== "playing") return;
+    
+    const gravityBtn = document.getElementById("gravityBtn");
+    if (gravityBtn && gravityBtn.classList.contains("gravity-used")) return;
+
+    const activated = gravitySystem.activate();
+    if (activated && gravityBtn) {
+      gravityBtn.classList.add("gravity-used");
+      console.log("Gravity power activated! Rockets falling down.");
+    }
+  }
+
+  setupGravityButton() {
+    const gravityBtn = document.getElementById("gravityBtn");
+    if (gravityBtn) {
+      gravityBtn.addEventListener("click", (e) => {
+        e.stopPropagation();
+        this.activateGravityPower();
+      });
+      gravityBtn.addEventListener("touchstart", (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        this.activateGravityPower();
+      }, { passive: false });
     }
   }
 
@@ -267,14 +382,14 @@ class Game {
     const gameControls = document.getElementById("gameControls");
     if (gameControls) gameControls.classList.remove("hidden");
 
-    const powerBtnContainer = document.getElementById("powerBtnContainer");
-    if (powerBtnContainer) powerBtnContainer.classList.remove("hidden");
-
-    const shieldBtnContainer = document.getElementById("shieldBtnContainer");
-    if (shieldBtnContainer) shieldBtnContainer.classList.remove("hidden");
+    const powersContainer = document.getElementById("powersContainer");
+    if (powersContainer) powersContainer.classList.remove("hidden");
 
     const powerBtn = document.getElementById("powerBtn");
     if (powerBtn) powerBtn.classList.remove("power-used");
+
+    const gravityBtn = document.getElementById("gravityBtn");
+    if (gravityBtn) gravityBtn.classList.remove("gravity-used");
 
     this.updateShieldButton();
 
@@ -318,22 +433,61 @@ class Game {
   }
 
   gameOver() {
+    // Start dying animation instead of immediately showing game over
+    if (this.gameState !== "dying" && this.gameState !== "blasting") {
+      this.gameState = "dying";
+      this.bird.die();
+      this.isPaused = false;
+      
+      // Trigger screen shake
+      this.screenShake = {
+        intensity: 8,
+        duration: 300,
+        startTime: Date.now()
+      };
+
+      this.syncToggleButton();
+
+      const gameControls = document.getElementById("gameControls");
+      if (gameControls) gameControls.classList.add("hidden");
+
+      const powersContainer = document.getElementById("powersContainer");
+      if (powersContainer) powersContainer.classList.add("hidden");
+
+      powerUpSystem.deactivate();
+      this.pipeManager.updateSpeed(2);
+    }
+  }
+
+  gameOverByRocket() {
+    // Start blast animation then dying
+    if (this.gameState !== "dying" && this.gameState !== "blasting") {
+      this.gameState = "blasting";
+      this.bird.dieByRocket();
+      this.isPaused = false;
+      
+      // Stronger screen shake for rocket explosion
+      this.screenShake = {
+        intensity: 15,
+        duration: 400,
+        startTime: Date.now()
+      };
+
+      this.syncToggleButton();
+
+      const gameControls = document.getElementById("gameControls");
+      if (gameControls) gameControls.classList.add("hidden");
+
+      const powersContainer = document.getElementById("powersContainer");
+      if (powersContainer) powersContainer.classList.add("hidden");
+
+      powerUpSystem.deactivate();
+      this.pipeManager.updateSpeed(2);
+    }
+  }
+
+  showGameOverScreen() {
     this.gameState = "gameOver";
-    this.isPaused = false;
-
-    this.syncToggleButton();
-
-    const gameControls = document.getElementById("gameControls");
-    if (gameControls) gameControls.classList.add("hidden");
-
-    const powerBtnContainer = document.getElementById("powerBtnContainer");
-    if (powerBtnContainer) powerBtnContainer.classList.add("hidden");
-
-    const shieldBtnContainer = document.getElementById("shieldBtnContainer");
-    if (shieldBtnContainer) shieldBtnContainer.classList.add("hidden");
-
-    powerUpSystem.deactivate();
-    this.pipeManager.updateSpeed(2);
 
     if (this.score > this.highScore) {
       this.highScore = this.score;
@@ -366,6 +520,9 @@ class Game {
     this.pipeManager.reset();
     this.bgX = 0;
     this.groundX = 0;
+    
+    // Reset screen shake
+    this.screenShake = { intensity: 0, duration: 0, startTime: 0 };
 
     coinSystem.reset();
 
@@ -376,14 +533,24 @@ class Game {
 
     rocketSystem.reset();
 
+    gravitySystem.reset();
+
+    portalSystem.reset();
+
     const powerBtnContainer = document.getElementById("powerBtnContainer");
     if (powerBtnContainer) powerBtnContainer.classList.add("hidden");
 
     const shieldBtnContainer = document.getElementById("shieldBtnContainer");
     if (shieldBtnContainer) shieldBtnContainer.classList.add("hidden");
 
+    const gravityBtnContainer = document.getElementById("gravityBtnContainer");
+    if (gravityBtnContainer) gravityBtnContainer.classList.add("hidden");
+
     const powerBtn = document.getElementById("powerBtn");
     if (powerBtn) powerBtn.classList.remove("power-used");
+
+    const gravityBtn = document.getElementById("gravityBtn");
+    if (gravityBtn) gravityBtn.classList.remove("gravity-used");
 
     this.gameState = "start";
 
@@ -455,15 +622,22 @@ class Game {
         }
 
         if (this.pipeManager.checkScore(this.bird)) {
-          this.score++;
+          this.score += portalSystem.getScoreMultiplier();
         }
 
-        // Rocket system - launches rockets after score >= 10
+        // Portal system
+        if (portalSystem.canTrigger(this.score)) {
+          portalSystem.trigger();
+        }
+        portalSystem.update();
+
         rocketSystem.update(this.score);
+
+        gravitySystem.update();
 
         if (!powerUpSystem.isInvincible()) {
           if (rocketSystem.checkCollision(this.bird)) {
-            this.gameOver();
+            this.gameOverByRocket();
             return;
           }
         }
@@ -475,7 +649,32 @@ class Game {
       }
     }
 
-    // Keep explosion animations running even after game over
+    // Handle blasting state - show explosion before falling
+    if (this.gameState === "blasting") {
+      const blastComplete = this.bird.updateBlast();
+      
+      // Update explosions while blasting
+      rocketSystem.updateExplosions();
+      
+      // When blast is done, transition to dying state
+      if (blastComplete) {
+        this.gameState = "dying";
+      }
+    }
+
+    // Handle dying state - bird falls to ground
+    if (this.gameState === "dying") {
+      this.bird.updateDying(this.groundY);
+      
+      // Update explosions while dying
+      rocketSystem.updateExplosions();
+      
+      // Check if bird has hit the ground
+      if (this.bird.hasHitGround(this.groundY)) {
+        this.showGameOverScreen();
+      }
+    }
+
     if (this.gameState === "gameOver") {
       rocketSystem.updateExplosions();
     }
@@ -484,13 +683,21 @@ class Game {
   drawBackground() {
     const ctx = this.ctx;
 
-    if (this.spriteLoaded && this.spriteSheet) {
-      const bgWidth = this.backgroundSprite.width;
-      const bgHeight = this.backgroundSprite.height;
+    ctx.fillStyle = "#70c5ce";
+    ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
 
-      const scale = (this.canvas.height - 80) / bgHeight;
+    if (this.spriteLoaded && this.spriteSheet) {
+      
+      const cropY = 60;
+      const cropHeight = 150;
+      
+      const bgWidth = this.backgroundSprite.width;
+      
+      const scale = 2.7;
       const scaledWidth = bgWidth * scale;
-      const scaledHeight = bgHeight * scale;
+      const scaledHeight = cropHeight * scale;
+
+      const bgY = this.groundY - scaledHeight;
 
       const tilesNeeded = Math.ceil(this.canvas.width / scaledWidth) + 2;
 
@@ -500,27 +707,25 @@ class Game {
         ctx.drawImage(
           this.spriteSheet,
           this.backgroundSprite.x,
-          this.backgroundSprite.y,
+          this.backgroundSprite.y + cropY,
           this.backgroundSprite.width,
-          this.backgroundSprite.height,
+          cropHeight,
           xPos,
-          0,
+          bgY,
           scaledWidth,
           scaledHeight,
         );
       }
-    } else {
-      const skyGradient = ctx.createLinearGradient(0, 0, 0, this.canvas.height);
-      skyGradient.addColorStop(0, "#87CEEB");
-      skyGradient.addColorStop(0.5, "#98D8E8");
-      skyGradient.addColorStop(1, "#B0E0E6");
-      ctx.fillStyle = skyGradient;
-      ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
     }
   }
 
   drawGround() {
     const ctx = this.ctx;
+
+  ctx.imageSmoothingEnabled = false;
+  ctx.wekitImageSmoothingEnabled=false;
+  ctx.mozImageSmoothingEnabled = false;
+  ctx.masImageSmooothingEnaled = false;
 
     if (this.spriteLoaded && this.spriteSheet) {
       const groundSprite = {
@@ -535,7 +740,7 @@ class Game {
       const tilesNeeded = Math.ceil(this.canvas.width / spriteWidth) + 1;
 
       for (let i = 0; i < tilesNeeded; i++) {
-        const xPos = this.groundX + i * spriteWidth;
+        const xPos = Math.round(this.groundX + i * spriteWidth);
 
         ctx.drawImage(
           this.spriteSheet,
@@ -544,8 +749,8 @@ class Game {
           groundSprite.width,
           groundSprite.height,
           xPos,
-          this.groundY,
-          spriteWidth,
+          Math.round(this.groundY),
+          Math.round(spriteWidth),
           groundHeight,
         );
       }
@@ -578,19 +783,55 @@ class Game {
 
     ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
 
-    this.drawBackground();
+    // Apply screen shake
+    let shakeX = 0, shakeY = 0;
+    if (this.screenShake.intensity > 0) {
+      const elapsed = Date.now() - this.screenShake.startTime;
+      if (elapsed < this.screenShake.duration) {
+        const progress = 1 - (elapsed / this.screenShake.duration);
+        const currentIntensity = this.screenShake.intensity * progress;
+        shakeX = (Math.random() - 0.5) * currentIntensity * 2;
+        shakeY = (Math.random() - 0.5) * currentIntensity * 2;
+      } else {
+        this.screenShake.intensity = 0;
+      }
+    }
+    
+    ctx.save();
+    ctx.translate(shakeX, shakeY);
+
+    // Draw world background based on portal state
+    if (portalSystem.isInNewWorld()) {
+      portalSystem.drawNewWorldBackground(ctx);
+    } else {
+      this.drawBackground();
+    }
 
     this.pipeManager.draw();
 
-    this.drawGround();
+    // Draw ground based on world
+    if (portalSystem.isInNewWorld()) {
+      portalSystem.drawNewWorldGround(ctx, this.groundY);
+    } else {
+      this.drawGround();
+    }
 
     this.bird.draw();
+    
+    // Draw blast effect on top of bird
+    if (this.gameState === "blasting" || this.bird.showBlast) {
+      this.bird.drawBlast();
+    }
 
     powerUpSystem.draw();
 
     shieldSystem.draw();
 
     rocketSystem.draw();
+
+    gravitySystem.draw();
+
+    portalSystem.draw();
 
     if (this.gameState === "playing") {
       ctx.fillStyle = "white";
@@ -629,6 +870,17 @@ class Game {
 
     if (this.showSettings) {
       drawSettings(ctx, this.canvas);
+    }
+    
+    ctx.restore(); // End screen shake transform
+    
+    // Draw hit flash effect (on top of everything)
+    if (this.bird.hitFlashAlpha > 0) {
+      ctx.save();
+      ctx.globalAlpha = this.bird.hitFlashAlpha * 0.5;
+      ctx.fillStyle = '#FFFFFF';
+      ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
+      ctx.restore();
     }
   }
 

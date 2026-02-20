@@ -42,6 +42,11 @@ class Pipe {
 
     draw() {
         const ctx = this.ctx;
+         // Ensure pixel-perfect rendering
+         ctx.imageSmoothingEnabled= false;
+         ctx.webkitImageSmoohingEnabled = false;
+         ctx.mozImageSmoothingEnabled = false;
+         ctx.msImageSmoothingEnabled = false;
 
         if (this.spriteLoaded && this.spriteSheet) {
             const capHeight = 12;
@@ -53,7 +58,11 @@ class Pipe {
                 const topBodySrcH = topSpr.height - capHeight;
                 const topCapSrcY = topSpr.y + topSpr.height - capHeight;
 
-                const topBodyDrawH = this.topHeight - capHeight;
+               //Use integer coordinates for pixel-perfect rendering
+               const pipeX = Math.round(this.x);
+               const pipeWidth = Math.round(this.width);
+
+               const topBodyDrawH = Math.round(this.topHeight- capHeight);
                 if (topBodyDrawH > 0) {
                     for (let y = 0; y < topBodyDrawH; y += topBodySrcH) {
                         const h = Math.min(topBodySrcH, topBodyDrawH - y);
@@ -61,8 +70,8 @@ class Pipe {
                             this.spriteSheet,
                             topSpr.x, topBodySrcY,
                             topSpr.width, h,
-                            this.x, y,
-                            this.width, h
+                            pipeX, Math.round(y),
+                            pipeWidth, Math.round(h)
                         );
                     }
                 }
@@ -71,8 +80,8 @@ class Pipe {
                     this.spriteSheet,
                     topSpr.x, topCapSrcY,
                     topSpr.width, capHeight,
-                    this.x - 3, this.topHeight - capHeight,
-                    this.width + 6, capHeight
+                    Math.round(pipeX - 3), Math.round(this.topHeight - capHeight),
+                    Math.round(pipeWidth + 6), capHeight
                 );
             }
 
@@ -83,16 +92,21 @@ class Pipe {
                 const btmBodySrcY = btmSpr.y + capHeight;
                 const btmBodySrcH = btmSpr.height - capHeight;
 
+           // Use integer coordinates for pixel-perfect rendering
+           const pipeX = Math.round(this.x);
+           const pipeWidth = Math.round(this.width);
+           const bottomY = Math.round(this.bottomY)
+
                 ctx.drawImage(
                     this.spriteSheet,
                     btmSpr.x, btmCapSrcY,
                     btmSpr.width, capHeight,
-                    this.x - 3, this.bottomY,
-                    this.width + 6, capHeight
+                     Math.round(pipeX - 3), bottomY,
+                     Math.round(pipeWidth + 6), capHeight
                 );
 
-                const btmBodyStartY = this.bottomY + capHeight;
-                const btmBodyDrawH = this.canvas.height - btmBodyStartY;
+                const btmBodyStartY = bottomY + capHeight;
+                const btmBodyDrawH = Math.round(this.canvas.height - btmBodyStartY);
                 if (btmBodyDrawH > 0) {
                     for (let y = 0; y < btmBodyDrawH; y += btmBodySrcH) {
                         const h = Math.min(btmBodySrcH, btmBodyDrawH - y);
@@ -100,8 +114,8 @@ class Pipe {
                             this.spriteSheet,
                             btmSpr.x, btmBodySrcY,
                             btmSpr.width, h,
-                            this.x, btmBodyStartY + y,
-                            this.width, h
+                            pipeX, Math.round(btmBodyStartY + y),
+                            pipeWidth, Math.round(h)
                         );
                     }
                 }

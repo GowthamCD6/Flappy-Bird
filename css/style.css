@@ -4,25 +4,54 @@
     box-sizing: border-box;
 }
 
+html, body {
+    width: 100%;
+    height: 100%;
+    margin: 0;
+    padding: 0;
+    overflow: hidden;
+}
+
 body {
     display: flex;
     justify-content: center;
     align-items: center;
-    min-height: 100vh;
-    background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
-    font-family: 'Segoe UI', 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    background: #000;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    touch-action: manipulation;
+    -webkit-tap-highlight-color: transparent;
+    user-select: none;
+    -webkit-user-select: none;
 }
 
 .game-container {
     position: relative;
-    border-radius: 10px;
+    width: 380px;
+    height: 600px;
+    border-radius: 0;
     overflow: hidden;
-    box-shadow: 0 0 30px rgba(0, 0, 0, 0.5);
+    box-shadow: none;
 }
 
 #gameCanvas {
     display: block;
+    width: 400px;
+    height: 600px;
     background: linear-gradient(180deg, #4ec0ca 0%, #70c5ce 100%);
+    image-rendering: pixelated;
+    image-rendering: crisp-edges;
+    -webkit-image-rendering: pixelated;
+    -moz-image-rendering: crisp-edges;
+}
+
+/* Pixel-perfect sprite rendering */
+[class*="sprite"],
+.power-btn,
+.shield-btn {
+    image-rendering: pixelated;
+    image-rendering: crisp-edges;
+    -webkit-image-rendering: pixelated;
+    -moz-image-rendering: crisp-edges;
 }
 
 .screen {
@@ -66,8 +95,13 @@ body {
     background: url('../assets/images/flappybirdassets.png') no-repeat -146px -173px;
     width: 96px;
     height: 22px;
-    margin-bottom: 50px;
-    transform: scale(2);
+    margin-bottom: 70px;
+    margin-top: 20px;
+    transform: scale(2.8);
+    image-rendering: pixelated;
+    image-rendering: crisp-edges;
+    -webkit-image-rendering: pixelated;
+    -moz-image-rendering: crisp-edges;
 }
 
 .start-sprite-button {
@@ -76,12 +110,14 @@ body {
     height: 14px;
     cursor: pointer;
     transition: transform 0.2s;
-    transform: scale(2);
+    transform: scale(2.7);
     margin-top: 180px;
+    image-rendering: pixelated;
+    image-rendering: crisp-edges;
 }
 
 .start-sprite-button:hover {
-    transform: scale(2.1);
+    transform: scale(2.9);
 }
 
 .shop-sprite-button {
@@ -90,27 +126,31 @@ body {
     height: 14px;
     cursor: pointer;
     transition: transform 0.2s;
-    transform: scale(2);
+    transform: scale(2.7);
     margin-top: 45px;
+    image-rendering: pixelated;
+    image-rendering: crisp-edges;
 }
 
 .shop-sprite-button:hover {
-    transform: scale(2.1);
+    transform: scale(2.9);
 }
 
 .get-ready-text-sprite {
     background: url('../assets/images/flappybirdassets.png') no-repeat -146px -221px;
     width: 87px;
     height: 22px;
-    transform: scale(2);
+    transform: scale(2.6);
     margin-bottom: 140px;
+    image-rendering: pixelated;
+    image-rendering: crisp-edges;
 }
 
 .guidance-sprite {
     background: url('../assets/images/flappybirdassets.png') no-repeat -172px -122px;
     width: 39px;
     height: 49px;
-    margin-top: 85px;
+    margin-top: 125px;
     margin-left: 30px;
     transform: scale(2);
 }
@@ -450,6 +490,57 @@ body {
     pointer-events: auto;
 }
 
+/* Unified Powers Container - Top left, vertical column */
+.powers-container {
+    position: absolute;
+    top: 100px;
+    left: 10px;
+    z-index: 100;
+    pointer-events: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 50px;
+    align-items: flex-start;
+}
+
+/* Unified Powers Container - Top left, vertical column */
+.power-container {
+    position: absolute;
+    top: 100px;
+    left: 20px;
+    z-index: 100;
+    pointer-events: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 50px;
+    align-items: flex-start;
+}
+
+.power-icon {
+    cursor: pointer;
+    image-rendering: pixelated;
+    image-rendering: crisp-edges;
+    transform: scale(3.0);
+    transform-origin: left center;
+    transition: transform 0.2s, opacity 0.2s;
+    pointer-events: auto;
+    user-select: none;
+    touch-action: manipulation;
+}
+
+.power-icon:hover {
+    transform: scale(3.5);
+}
+
+.power-icon:active {
+    transform: scale(2.5);
+}
+
+.power-icon.power-used {
+    opacity: 0.3;
+    pointer-events: none;
+}
+
 .power-btn {
     cursor: pointer;
     background-color: rgba(0, 0, 0, 0.5);
@@ -531,4 +622,287 @@ body {
     box-shadow: none;
     background-color: rgba(0, 0, 0, 0.7);
     opacity: 0.6;
+}
+
+/* Gravity Power Button */
+.gravity-btn-container {
+    position: absolute;
+    bottom: 80px;
+    right: 20px;
+    z-index: 100;
+    pointer-events: auto;
+}
+
+.gravity-sprite {
+    background: url('../assets/images/flappybirdassets(1).png') no-repeat -382px -102px;
+    width: 22px;
+    height: 22px;
+    image-rendering: pixelated;
+    image-rendering: crisp-edges;
+}
+
+.gravity-btn {
+    cursor: pointer;
+    background-color: rgba(80, 0, 120, 0.8);
+    padding: 12px;
+    border-radius: 12px;
+    border: 3px solid #9932CC;
+    transform: scale(2.0);
+    transition: transform 0.2s, background-color 0.2s, box-shadow 0.2s;
+    pointer-events: auto;
+    user-select: none;
+    touch-action: manipulation;
+    box-shadow: 0 0 15px rgba(153, 50, 204, 0.6);
+}
+
+.gravity-btn:hover {
+    transform: scale(2.2);
+    background-color: rgba(100, 0, 150, 0.9);
+    box-shadow: 0 0 20px rgba(153, 50, 204, 0.8);
+}
+
+.gravity-btn:active {
+    transform: scale(1.8);
+}
+
+.gravity-btn.gravity-used {
+    border-color: #666;
+    box-shadow: none;
+    background-color: rgba(50, 50, 50, 0.7);
+    opacity: 0.5;
+    pointer-events: none;
+}
+
+/* ===== MOBILE RESPONSIVE ===== */
+@media screen and (max-width: 480px) {
+    html, body{
+        width: 100% !important;
+        height: 100% !important;
+        min-height: 100vh !important;
+        min-height: 100dvh !important;
+        overflow:  hidden !important;
+        background: #4ec0ca !important;
+    }
+
+    body{
+        align-items:stretch;
+        justify-content:center;
+    }
+
+    .game-container{
+        position: fixed !important;
+        top: 0 !important;
+        left:o !important;
+        right: 0 !important;
+        bottom: 0 !important;
+        width: 100% !important;
+        height: 100% !important;
+        border-radius: 0 !important;
+        box-shadow:none !important;
+    }
+
+    #gameCanvas {
+        position :absolute !important;
+        top:0 !important;
+        left: 0 !important;
+        width: 100% !important;
+        height: 100% !important;
+        display:block;
+    }
+
+    .screen{
+        width:100%;
+        height: 100%;
+    }
+
+    #startScreen {
+        padding-top: 12vh;
+    }
+
+    #getReadyScreen {
+        padding-top: 12vh;
+    }
+
+    #gameOverScreen{
+        padding-top: 10vh;
+    }
+
+    .get-ready-sprite{
+        transform: scale(2);
+        margin-bottom: 20px;
+    }
+
+    .start-sprite-button {
+        transform: scale(2.5);
+        margin-top: 15vh;
+        padding:10px;
+    }
+
+    .shop_sprite-button {
+        transform: scale(2.5);
+        margin-top:40px;
+        padding:10px;
+    }
+
+    .get-ready-text-sprite {
+        transform: scale(2);
+        margin-top: 40px;
+    }
+
+    .guidance-sprite{
+        transform: scale(2.5);
+        margin-top: 40px;
+    }
+
+    .game-over-sprite {
+        transform:scale(2.8);
+        margin-bottom: 30px;
+    }
+
+    .scoreboard-sprite{
+        transform: scale(2.5);
+        margin-bottom: 120px;
+    }
+
+    .restart-sprite-button {
+        transform: scale(2.5);
+        padding: 10px;
+    }
+
+    .features-link {
+        bottom:25px;
+        font-size:14px;
+        padding: 8px 16px;
+        z-index:200;
+    }
+
+    .game-controls {
+        top:12px;
+        right:12px;
+    }
+    
+    .game-controls #togglebtn{
+        transform:scale(2.2);
+        padding:10px;
+    }
+
+    .power-btn-comtainer {
+        bottom: 18vh;
+        left: 15px;
+        z-index:200;
+    }
+
+    .power-btn{
+        transform: scale(2);
+        padding: 10px;
+    }
+
+    .shield-btn-container{
+        bottom:18vh;
+        right:15px;
+        z-index: 200;
+    }
+    
+
+    .shield-btn {
+        transform:scale(2);
+        padding: 10px;
+    }
+
+    .close-shop-button{
+        top:8vh;
+        right:8vw;
+        width:48px;
+        height:48px;
+        font-size: 28px;
+    }
+
+    .shop-content-sprite{
+        transform:scale(3);
+    }
+
+    #shopScreen {
+        justify-content: center;
+    }
+    
+}
+
+
+    @media screen and (max-width: 380px){
+
+
+        .get-ready-sprite {
+            transform: scale(2);
+            margin-top : 12vh;
+        }
+
+        .start.sprite-button {
+            transform: sale(2);
+            margin-top: 30px;
+        }
+
+        .shop-sprite-button {
+            transform: scale(2.2);
+            margin-bottom:90px;
+                }
+
+       .scoreboard-sprite {
+        transform: scale(2.2);
+        margin-bottom: 90px;
+           }
+
+        .game-over-sprite{
+            transform:scale(2);
+        }
+
+        .restart-sprite-button{
+
+            transform: scale(2);
+        }
+      
+
+        .power-btn{
+            transform:scale(1.6);
+        }
+
+        .sheild-btn{
+            transform:scale(.6);
+        }
+
+        .shop-content-sprite{
+            transform: scale(2.2);
+    }
+    }
+
+
+
+    @media screen and (max-height: 650px) and (max-width:480px){
+        #startSccren{
+            padding-top: 8vh;
+        }
+
+        .start-sprite-button{
+            margin-top:10vh;
+        }
+
+        .shop-sprite-button{
+            margin-top: 25px
+        }
+
+        .scorboard-sprite{
+            transform: scale(2);
+            margin-bottom:20px;
+        }
+        .game_over-sprite{
+        margin-bottom: 20px;
+    } 
+
+
+    .power-btn-container{
+        bottom:15vh;
+    }
+
+    .features-link{
+        bottom:15px;
+    }
 }

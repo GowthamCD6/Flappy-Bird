@@ -2,7 +2,9 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="mobile-web-app-capable" content="yes">
     <title>Flappy Bird</title>
     <link rel="stylesheet" href="css/style.css">
 </head>
@@ -39,11 +41,10 @@
         <div id="gameControls" class="game-controls hidden">
             <div class="pass-sprite" id="toggleBtn" title="Pause Game"></div>
         </div>
-        <div id="powerBtnContainer" class="power-btn-container hidden">
-            <div id="powerBtn" class="power-sprite power-btn" title="Activate Power"></div>
-        </div>
-        <div id="shieldBtnContainer" class="shield-btn-container hidden">
-            <div id="shieldBtn" class="shield-sprite shield-btn" title="Activate Shield"></div>
+        <div id="powersContainer" class="powers-container hidden">
+            <div id="powerBtn" class="power-icon power-sprite" title="Activate Power (P)"></div>
+            <div id="shieldBtn" class="power-icon shield-sprite" title="Activate Shield (E)"></div>
+            <div id="gravityBtn" class="power-icon gravity-sprite" title="Gravity Power (G)"></div>
         </div>
     </div>
 
@@ -53,6 +54,8 @@
     <script src="js/powerup.js"></script>
     <script src="js/shield.js"></script>
     <script src="js/rocket.js"></script>
+    <script src="js/gravity.js"></script>
+    <script src="js/portal.js"></script>
     <script src="js/game.js"></script>
 </body>
-</html>
+</html>              
