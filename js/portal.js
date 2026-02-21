@@ -42,12 +42,35 @@ class PortalSystem {
             type: 'in' // 'in' or 'out'
         };
 
+        // Suck-in/Release animation for bird
+        this.suckInAnimation = {
+            active: false,
+            progress: 0,
+            duration: 1500, // 1.5 seconds for smooth absorption
+            startTime: 0,
+            startX: 0,
+            startY: 0,
+            targetX: 0,
+            targetY: 0,
+            startScale: 1,
+            type: 'in', // 'in' or 'out'
+            // Spiral motion properties
+            spiralAngle: 0,
+            spiralRadius: 0,
+            // Visual effects
+            portalGlow: 0,
+            vortexParticles: [],
+            screenDarken: 0
+        };
+
+        // Invincibility after exiting portal
+        this.invincibilityDuration = 3000; // 3 seconds invincibility
+        this.invincibilityTime = 0;
+        this.isInvincible = false;
+
         // New world properties
         this.isNewWorld = false;
         this.worldTransition = 0; // 0 = normal, 1 = new world
-        this.stars = [];
-        this.shootingStars = [];
-        this.floatingOrbs = [];
         this.newWorldTime = 0;
         this.newWorldDuration = 20000; // 20 seconds in new world before exit portal
 
@@ -97,24 +120,23 @@ class PortalSystem {
 
         // Portal colors (for particles & glow) - SAME for both portals now
         this.portalColors = ['#8B5CF6', '#7C3AED', '#6D28D9', '#A78BFA', '#C4B5FD'];
-        this.newWorldBgColor1 = '#0F0A2E';
-        this.newWorldBgColor2 = '#1A1145';
+      
 
-        this._initStars();
-    }
+        // Space background sprite
+        this.spaceLoaded = false;
+        this.spaceSprite = new Image();
+        this.spaceSprite.onload = () => {
+            this.spaceLoaded = true;
+            console.log('Space background sprite loaded!');
+        };
+        this.spaceSprite.onerror = () => {
+            console.log('Space sprite not found, using fallback');
+        };
+        this.spaceSprite.src = 'assets/images/space.jpg';
 
-    _initStars() {
-        // Pre-generate stars for the new world
-        for (let i = 0; i < 80; i++) {
-            this.stars.push({
-                x: Math.random() * 400,
-                y: Math.random() * 520,
-                size: 0.5 + Math.random() * 2,
-                twinkleSpeed: 0.02 + Math.random() * 0.04,
-                twinkleOffset: Math.random() * Math.PI * 2,
-                brightness: 0.5 + Math.random() * 0.5
-            });
-        }
+        // Space background scrolling for parallax effect
+        this.spaceScrollX = 0;
+        this.spaceScrollSpeed = 0.5; // Pixels per frame - smooth scrolling
     }
 
     init(bird, canvas) {
@@ -130,14 +152,14 @@ class PortalSystem {
     trigger() {
         if (this.state !== 'inactive') return;
 
-        // Portal opens INSTANTLY - skip spawning animation
+        // Portal opens INSTANTLY - already fully formed when bird sees it
         this.state = 'entry_open';
 
         // Spawn entry portal at FIXED position on the right side of screen
         this.entryPortal.x = this.canvas.width - 80; // Fixed X position
         this.entryPortal.y = this.canvas.height / 2; // Center Y
-        this.entryPortal.radius = this.entryPortal.maxRadius; // Instantly full size
-        this.entryPortal.alpha = 1; // Instantly visible
+        this.entryPortal.radius = this.entryPortal.maxRadius; // INSTANT full size
+        this.entryPortal.alpha = 1; // INSTANT full visibility
         this.entryPortal.rotation = 0;
         this.entryPortal.spawnTime = Date.now();
         this.entryPortal.particles = [];
@@ -146,9 +168,8 @@ class PortalSystem {
         this.hasTriggered = true;
         this.birdMovingToPortal = true; // Start moving bird toward portal
 
-        // Visual effects
-        this.flashAlpha = 0.8; // Bright flash when portal opens
-        this.needsScreenShake = true; // Trigger screen shake
+        // NO flash effect - portal just appears smoothly
+        // this.flashAlpha = 0; // Removed purple flash
 
         console.log('Portal is open! Fly into it within 20 seconds!');
     }
@@ -187,7 +208,12 @@ class PortalSystem {
             this.flashAlpha -= 0.03;
             if (this.flashAlpha < 0) this.flashAlpha = 0;
         }
+       // Update release animation if active
+       this._updateReleaseAnimation();
 
+       //Update invincibility status
+       this.checkInvincibility();
+      
         if (this.state === 'inactive' || this.state === 'cooldown') return;
 
         const now = Date.now();
@@ -224,12 +250,6 @@ class PortalSystem {
         // Update portal particles
         this._updatePortalParticles(this.entryPortal);
         this._updatePortalParticles(this.exitPortal);
-
-        // Update shooting stars in new world
-        if (this.isNewWorld) {
-            this._updateShootingStars();
-            this._updateFloatingOrbs();
-        }
     }
 
     _moveBirdTowardPortal() {
@@ -300,14 +320,42 @@ class PortalSystem {
         }
 
         // Check bird collision with entry portal
-        if (this._checkPortalCollision(this.entryPortal)) {
-            this.state = 'transitioning_in';
-            this.transition.startTime = now;
-            this.transition.progress = 0;
-            this.transition.type = 'in';
+        if (this._checkPortalCollision(this.entryPortal) && !this.suckInAnimation.active) {
+            // Start suck-in animation
+            this.suckInAnimation.active = true;
+            this.suckInAnimation.progress = 0;
+            this.suckInAnimation.startTime = now;
+            this.suckInAnimation.startX = this.bird.x;
+            this.suckInAnimation.startY = this.bird.y;
+            this.suckInAnimation.targetX = this.entryPortal.x - this.bird.width / 2;
+            this.suckInAnimation.targetY = this.entryPortal.y - this.bird.height / 2;
+            this.suckInAnimation.startScale = 1;
+            this.suckInAnimation.type = 'in';
+            this.suckInAnimation.spiralAngle = Math.atan2(
+                this.bird.y - this.entryPortal.y,
+                this.bird.x - this.entryPortal.x
+            );
+            this.suckInAnimation.spiralRadius = Math.sqrt(
+                Math.pow(this.bird.x - this.entryPortal.x + this.bird.width / 2, 2) +
+                Math.pow(this.bird.y - this.entryPortal.y + this.bird.height / 2, 2)
+            );
+            this.suckInAnimation.vortexParticles = [];
+            this.suckInAnimation.screenDarken = 0;
+            this.suckInAnimation.portalGlow = 0;
             this.birdMovingToPortal = false;
             this.needsClearPipes = true; // Signal to clear pipes
-            console.log('Entering the portal!');
+         
+            // Initialize bird portal animation properties
+            this.bird.portalRotation = 0;
+            this.bird.portalStretchX = 1;
+            this.bird.portalStretchY = 1;
+
+            console.log('Being sucked into the portal!');
+        }
+
+        // Update suck-in animation
+        if (this.suckInAnimation.active && this.suckInAnimation.type === 'in') {
+            this._updateSuckInAnimation(now);
         }
     }
 
@@ -325,18 +373,21 @@ class PortalSystem {
             this.state = 'new_world';
             this.newWorldTime = now;
 
-            // Reposition bird to left side for new world
-            this.bird.x = 80;
+            // Reposition bird to CENTER for new world
+            this.bird.x = this.canvas.width / 2 - this.bird.width / 2;
             this.bird.y = this.canvas.height / 3;
             this.bird.velocity = 0;
+
+            // Start release animation - bird appears from center and expands
+            this._startReleaseAnimation();
 
             // Reset entry portal
             this.entryPortal.alpha = 0;
             this.entryPortal.radius = 0;
             this.entryPortal.particles = [];
 
-            // Flash effect when entering new world
-            this.flashAlpha = 1.0;
+            // No purple flash - just white flash from transition effect is enough
+            // this.flashAlpha = 0.8;
 
             console.log('Welcome to the new world! x2 score bonus! No pipes here!');
         }
@@ -347,20 +398,18 @@ class PortalSystem {
         const elapsed = now - this.newWorldTime;
 
         if (elapsed >= this.newWorldDuration) {
-            // Exit portal opens INSTANTLY - skip spawning animation
+            // Exit portal appears INSTANTLY - fully formed
             this.exitPortal.x = this.canvas.width - 80; // Fixed X position
             this.exitPortal.y = this.canvas.height / 2; // Center Y
-            this.exitPortal.radius = this.exitPortal.maxRadius; // Instantly full size
-            this.exitPortal.alpha = 1; // Instantly visible
+            this.exitPortal.radius = this.exitPortal.maxRadius; // INSTANT full size
+            this.exitPortal.alpha = 1; // INSTANT full visibility
             this.exitPortal.rotation = 0;
             this.exitPortal.spawnTime = now;
             this.exitPortal.particles = [];
             this.birdMovingToPortal = true; // Start moving toward exit
-            this.state = 'exit_open'; // Skip spawning, go directly to open
+            this.state = 'exit_open'; // Skip spawning, directly open
             
-            // Flash and shake when exit portal appears
-            this.flashAlpha = 0.6;
-            this.needsScreenShake = true;
+            // NO flash effect
             
             console.log('Exit portal is open! Fly into it to return!');
         }
@@ -400,14 +449,42 @@ class PortalSystem {
         }
 
         // Check bird collision with exit portal
-        if (this._checkPortalCollision(this.exitPortal)) {
-            this.state = 'transitioning_out';
-            this.transition.startTime = now;
-            this.transition.progress = 0;
-            this.transition.type = 'out';
+        if (this._checkPortalCollision(this.exitPortal) && !this.suckInAnimation.active) {
+            // Start suck-in animation for exit
+            this.suckInAnimation.active = true;
+            this.suckInAnimation.progress = 0;
+            this.suckInAnimation.startTime = now;
+            this.suckInAnimation.startX = this.bird.x;
+            this.suckInAnimation.startY = this.bird.y;
+            this.suckInAnimation.targetX = this.exitPortal.x - this.bird.width / 2;
+            this.suckInAnimation.targetY = this.exitPortal.y - this.bird.height / 2;
+            this.suckInAnimation.startScale = 1;
+            this.suckInAnimation.type = 'out';
+            this.suckInAnimation.spiralAngle = Math.atan2(
+                this.bird.y - this.exitPortal.y,
+                this.bird.x - this.exitPortal.x
+            );
+            this.suckInAnimation.spiralRadius = Math.sqrt(
+                Math.pow(this.bird.x - this.exitPortal.x + this.bird.width / 2, 2) +
+                Math.pow(this.bird.y - this.exitPortal.y + this.bird.height / 2, 2)
+            );
+            this.suckInAnimation.vortexParticles = [];
+            this.suckInAnimation.screenDarken = 0;
+            this.suckInAnimation.portalGlow = 0;
             this.birdMovingToPortal = false;
             this.needsClearPipes = true; // Signal to clear pipes when returning
-            console.log('Returning to normal world!');
+            
+            // Initialize bird portal animation properties
+            this.bird.portalRotation = 0;
+            this.bird.portalStretchX = 1;
+            this.bird.portalStretchY = 1;
+
+            console.log('Being sucked into the exit portal!');
+        }
+
+        // Update suck-in animation for exit
+        if (this.suckInAnimation.active && this.suckInAnimation.type === 'out') {
+            this._updateSuckInAnimation(now);
         }
     }
 
@@ -424,10 +501,13 @@ class PortalSystem {
             this.worldTransition = 0;
             this.state = 'cooldown';
 
-            // Reposition bird
+            // Reposition bird to CENTER
             this.bird.x = this.canvas.width / 2 - this.bird.width / 2;
             this.bird.y = this.canvas.height / 3;
             this.bird.velocity = 0;
+
+            // Start release animation - bird appears from center and expands
+            this._startReleaseAnimation();
 
             // Reset portals
             this.entryPortal.alpha = 0;
@@ -441,14 +521,18 @@ class PortalSystem {
             this.justExited = true;
             this.exitTime = Date.now();
 
-            // Flash effect when returning
-            this.flashAlpha = 1.0;
+           // Start invinciblity period for adaptation
+           this.isInvincible = true;
+           this.invincibilityTime = Date.now();
+
+           //No purple flash
+           // this.flashAlpha= 0.8
 
             // Allow re-trigger after 30 more points
             this.triggerScore += 30;
             this.hasTriggered = false;
 
-            console.log('Back to normal world! Grace period active. Next portal at score ' + this.triggerScore);
+            console.log('Back to normal world! Invincibility active! Next portal at score ' + this.triggerScore);
         }
     }
 
@@ -475,7 +559,8 @@ class PortalSystem {
         const dy = birdCY - portal.y;
         const dist = Math.sqrt(dx * dx + dy * dy);
 
-        return dist < portal.radius + 10;
+        // Larger capture radius - once bird gets close, it WILL be sucked in
+        return dist < portal.radius + 30;
     }
 
     _spawnPortalParticle(portal) {
@@ -524,97 +609,298 @@ class PortalSystem {
         }
     }
 
-    _updateShootingStars() {
-        // Occasionally spawn shooting stars
-        if (Math.random() < 0.008) {
-            this.shootingStars.push({
-                x: Math.random() * this.canvas.width,
-                y: Math.random() * 200,
-                vx: -3 - Math.random() * 4,
-                vy: 1 + Math.random() * 2,
-                length: 20 + Math.random() * 40,
-                alpha: 1,
-                life: 40
-            });
-        }
-
-        for (let i = this.shootingStars.length - 1; i >= 0; i--) {
-            const s = this.shootingStars[i];
-            s.x += s.vx;
-            s.y += s.vy;
-            s.life--;
-            s.alpha = s.life / 40;
-            if (s.life <= 0) this.shootingStars.splice(i, 1);
-        }
-    }
-
-    _updateFloatingOrbs() {
-        // Spawn floating light orbs
-        if (Math.random() < 0.02 && this.floatingOrbs.length < 8) {
-            this.floatingOrbs.push({
-                x: Math.random() * this.canvas.width,
-                y: Math.random() * (this.canvas.height - 100),
-                baseY: 0,
-                radius: 3 + Math.random() * 5,
-                alpha: 0,
-                maxAlpha: 0.3 + Math.random() * 0.4,
-                hue: Math.random() * 360,
-                floatPhase: Math.random() * Math.PI * 2,
-                floatSpeed: 0.01 + Math.random() * 0.02,
-                life: 200 + Math.random() * 200
-            });
-            this.floatingOrbs[this.floatingOrbs.length - 1].baseY =
-                this.floatingOrbs[this.floatingOrbs.length - 1].y;
-        }
-
-        for (let i = this.floatingOrbs.length - 1; i >= 0; i--) {
-            const o = this.floatingOrbs[i];
-            o.floatPhase += o.floatSpeed;
-            o.y = o.baseY + Math.sin(o.floatPhase) * 15;
-            o.life--;
-
-            if (o.life > 180) {
-                o.alpha = Math.min(o.maxAlpha, o.alpha + 0.02);
-            } else if (o.life < 40) {
-                o.alpha = Math.max(0, o.alpha - 0.01);
-            }
-
-            if (o.life <= 0) this.floatingOrbs.splice(i, 1);
-        }
-    }
-
     _easeInOut(t) {
         return t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
     }
 
-    // =================== DRAWING ===================
+    _updateSuckInAnimation(now) {
+        const elapsed = now - this.suckInAnimation.startTime;
+        this.suckInAnimation.progress = Math.min(elapsed / this.suckInAnimation.duration, 1);
+        const t = this.suckInAnimation.progress;
+
+        // Get target portal
+        const portal = this.suckInAnimation.type === 'in' ? this.entryPortal : this.exitPortal;
+
+        // Smooth easing functions for natural absorption
+        // Using smooth ease-in-out for position, ease-in for scale (speeds up as it gets closer)
+        const smoothEaseInOut = t => t < 0.5 ? 2 * t * t : 1 - Math.pow(-2 * t + 2, 2) / 2;
+        const smoothEaseIn = t => t * t * t; // Cubic ease-in for acceleration
+        const gentleEase = t => 1 - Math.pow(1 - t, 2); // Soft ease-out
+
+        // Smooth position progress - bird moves toward portal center smoothly
+        const positionProgress = smoothEaseIn(t); // Accelerates as it gets closer - like being sucked in
+        
+        // Smooth scale progress - gradual shrinking that speeds up near the end
+        const scaleProgress = smoothEaseInOut(t);
+        
+        // Very gentle spiral motion - smooth and consistent
+        const spiralSpeed = 0.02 + t * 0.03; // Slowly increasing spiral speed
+        this.suckInAnimation.spiralAngle += spiralSpeed;
+        
+        // The spiral gets tighter as the bird approaches (radius decreases smoothly)
+        const startRadius = this.suckInAnimation.spiralRadius;
+        const currentRadius = startRadius * (1 - positionProgress);
+        
+        // Calculate smooth position with gentle spiral
+        const targetX = portal.x - this.bird.width / 2;
+        const targetY = portal.y - this.bird.height / 2;
+        const startX = this.suckInAnimation.startX;
+        const startY = this.suckInAnimation.startY;
+        
+        // Smooth interpolation toward center with spiral orbit
+        const spiralOffsetX = Math.cos(this.suckInAnimation.spiralAngle) * currentRadius;
+        const spiralOffsetY = Math.sin(this.suckInAnimation.spiralAngle) * currentRadius;
+        
+        // Bird moves from start position toward portal center with diminishing spiral
+        this.bird.x = startX + (targetX - startX) * positionProgress + spiralOffsetX;
+        this.bird.y = startY + (targetY - startY) * positionProgress + spiralOffsetY;
+
+        // Smooth scale reduction - original size to small (1.0 to 0.1)
+        // Starts slow, accelerates in middle, slows at end
+        this.bird.suckScale = 1 - (scaleProgress * 0.9); // Scale from 1 to 0.1
+
+        // Gentle, smooth rotation - bird spins slowly and consistently
+        const rotationSpeed = 1.5 + t * 1.5; // 1.5 to 3 degrees per frame - gentle spin
+        this.bird.portalRotation = (this.bird.portalRotation || 0) + rotationSpeed;
+
+        // Subtle stretch effect - only near the end
+        const stretchProgress = t > 0.6 ? gentleEase((t - 0.6) / 0.4) : 0;
+        const angleToPortal = Math.atan2(
+            portal.y - (this.bird.y + this.bird.height / 2),
+            portal.x - (this.bird.x + this.bird.width / 2)
+        );
+        this.bird.portalStretchX = 1 + stretchProgress * 0.3 * Math.abs(Math.cos(angleToPortal));
+        this.bird.portalStretchY = 1 - stretchProgress * 0.2 * Math.abs(Math.cos(angleToPortal));
+
+        // Screen effects - gentle darkening
+        this.suckInAnimation.screenDarken = smoothEaseIn(t) * 0.3;
+        this.suckInAnimation.portalGlow = smoothEaseIn(t);
+
+        // Disable bird physics
+        this.bird.velocity = 0;
+
+        // Spawn vortex particles (subtle)
+        if (Math.random() < 0.2 + t * 0.3) {
+            this._spawnVortexParticle(portal);
+        }
+
+        // Update vortex particles
+        this._updateVortexParticles(portal);
+
+        // Portal rotation - smooth acceleration
+        portal.rotation += 0.05 + t * 0.1;
+
+        // When suck-in complete, start transition
+        if (this.suckInAnimation.progress >= 1) {
+            this.suckInAnimation.active = false;
+            this.bird.suckScale = 1;
+            this.bird.portalRotation = 0;
+            this.bird.portalStretchX = 1;
+            this.bird.portalStretchY = 1;
+            this.suckInAnimation.vortexParticles = [];
+
+            if (this.suckInAnimation.type === 'in') {
+                this.state = 'transitioning_in';
+                this.transition.startTime = now;
+                this.transition.progress = 0;
+                this.transition.type = 'in';
+                // No purple flash
+                console.log('Entering the portal!');
+            } else {
+                this.state = 'transitioning_out';
+                this.transition.startTime = now;
+                this.transition.progress = 0;
+                this.transition.type = 'out';
+                // No purple flash
+                console.log('Returning to normal world!');
+            }
+        }
+    }
+
+    _spawnVortexParticle(portal) {
+        const angle = Math.random() * Math.PI * 2;
+        const dist = portal.radius + 30 + Math.random() * 60;
+        this.suckInAnimation.vortexParticles.push({
+            x: portal.x + Math.cos(angle) * dist,
+            y: portal.y + Math.sin(angle) * dist,
+            angle: angle,
+            dist: dist,
+            size: 2 + Math.random() * 6,
+            alpha: 0.8 + Math.random() * 0.2,
+            speed: 3 + Math.random() * 4,
+            rotationSpeed: 0.1 + Math.random() * 0.15,
+            color: this.portalColors[Math.floor(Math.random() * this.portalColors.length)],
+            life: 1
+        });
+    }
+
+    _updateVortexParticles(portal) {
+        for (let i = this.suckInAnimation.vortexParticles.length - 1; i >= 0; i--) {
+            const p = this.suckInAnimation.vortexParticles[i];
+            
+            // Spiral toward center
+            p.angle += p.rotationSpeed;
+            p.dist -= p.speed;
+            
+            p.x = portal.x + Math.cos(p.angle) * p.dist;
+            p.y = portal.y + Math.sin(p.angle) * p.dist;
+            
+            // Fade and shrink as approaching center
+            p.life = p.dist / 100;
+            p.alpha = p.life * 0.8;
+            p.size *= 0.98;
+            
+            if (p.dist < 5 || p.alpha < 0.05) {
+                this.suckInAnimation.vortexParticles.splice(i, 1);
+            }
+        }
+    }
+
+    _startReleaseAnimation() {
+        // The bird will have a smooth release/expansion effect
+        this.bird.releaseAnimation = {
+            active: true,
+            progress: 0,
+            startTime: Date.now(),
+            duration: 600 // 0.6 seconds release
+        };
+        this.bird.suckScale = 0.3; // Start small
+    }
+
+    // Call this in update to handle release animation
+    _updateReleaseAnimation() {
+        if (!this.bird.releaseAnimation || !this.bird.releaseAnimation.active) return;
+
+        const elapsed = Date.now() - this.bird.releaseAnimation.startTime;
+        const progress = Math.min(elapsed / this.bird.releaseAnimation.duration, 1);
+
+        // Elastic ease-out for bouncy release
+        const ease = 1 - Math.pow(1 - progress, 3);
+
+        // Scale bird from small to normal
+        this.bird.suckScale = 0.3 + (0.7 * ease);
+
+        // Add slight bounce overshoot
+        if (progress > 0.7) {
+            const bounceProgress = (progress - 0.7) / 0.3;
+            const bounce = Math.sin(bounceProgress * Math.PI) * 0.1;
+            this.bird.suckScale = Math.min(1.1, this.bird.suckScale + bounce);
+        }
+
+        if (progress >= 1) {
+            this.bird.releaseAnimation.active = false;
+            this.bird.suckScale = 1;
+        }
+    }
+
+    // Check if bird is currently invincible
+    checkInvincibility() {
+        if (!this.isInvincible) return false;
+
+        const elapsed = Date.now() - this.invincibilityTime;
+        if (elapsed >= this.invincibilityDuration) {
+            this.isInvincible = false;
+            return false;
+        }
+        return true;
+    }
+
+    // Get invincibility flash alpha for visual feedback
+    getInvincibilityAlpha() {
+        if (!this.isInvincible) return 1;
+        const elapsed = Date.now() - this.invincibilityTime;
+        // Flashing effect - faster near the end
+        const remaining = this.invincibilityDuration - elapsed;
+        const flashSpeed = remaining < 1000 ? 0.02 : 0.01;
+        return 0.5 + Math.sin(elapsed * flashSpeed) * 0.5;
+    }
+
+    _drawInvincibilityIndicator(ctx) {
+        const elapsed = Date.now() - this.invincibilityTime;
+        const remaining = Math.max(0, this.invincibilityDuration - elapsed);
+        const seconds = Math.ceil(remaining / 1000);
+
+        ctx.save();
+
+        // Pulsing text effect
+        const pulse = Math.sin(elapsed * 0.01) * 0.2 + 0.8;
+
+        ctx.font = 'bold 12px Arial';
+        ctx.textAlign = 'center';
+
+        // Glow effect
+        ctx.shadowColor = '#10B981'; // Green glow
+        ctx.shadowBlur = 8 * pulse;
+
+        ctx.fillStyle = '#34D399'; // Emerald green
+        ctx.strokeStyle = 'rgba(0,0,0,0.5)';
+        ctx.lineWidth = 2;
+
+        const text = 'PROTECTED ' + seconds + 's';
+        const y = 70;
+        ctx.strokeText(text, this.canvas.width / 2, y);
+        ctx.fillText(text, this.canvas.width / 2, y);
+
+        // Draw progress bar for invincibility
+        const barWidth = 80;
+        const barHeight = 4;
+        const barX = (this.canvas.width - barWidth) / 2;
+        const barY = y + 8;
+        const progress = remaining / this.invincibilityDuration;
+
+        // Bar background
+        ctx.shadowBlur = 0;
+        ctx.fillStyle = 'rgba(0, 0, 0, 0.4)';
+        ctx.fillRect(barX, barY, barWidth, barHeight);
+
+        // Bar fill
+        ctx.fillStyle = '#34D399';
+        ctx.fillRect(barX, barY, barWidth * progress, barHeight);
+
+        ctx.restore();
+    }
 
     draw() {
         const ctx = this.ctx;
 
-        // Draw screen flash effect (always draw, even during cooldown)
-        if (this.flashAlpha > 0) {
+        // Draw screen darkening during suck-in animation
+        // Screen darken effect during suck-in (keep this - it's subtle)
+        if (this.suckInAnimation.active && this.suckInAnimation.screenDarken > 0) {
             ctx.save();
-            ctx.fillStyle = `rgba(139, 92, 246, ${this.flashAlpha})`; // Purple flash
+            ctx.fillStyle = `rgba(0, 0, 0, ${this.suckInAnimation.screenDarken})`;
             ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
             ctx.restore();
         }
 
+        // Purple flash removed - no longer drawing it
+
+        // Draw invincibility indicator (always, even during cooldown)
+        if (this.isInvincible) {
+            this._drawInvincibilityIndicator(ctx);
+        }
+
         if (this.state === 'inactive' || this.state === 'cooldown') return;
 
-        // Draw transition overlay
+        // Draw vortex particles during suck-in
+        if (this.suckInAnimation.active && this.suckInAnimation.vortexParticles.length > 0) {
+            this._drawVortexParticles(ctx);
+        }
+
         if (this.state === 'transitioning_in' || this.state === 'transitioning_out') {
             this._drawTransitionEffect(ctx);
         }
 
-        // Draw entry portal
         if (this.entryPortal.alpha > 0) {
-            this._drawPortal(ctx, this.entryPortal, 'ENTER');
+            const extraGlow = (this.suckInAnimation.active && this.suckInAnimation.type === 'in') 
+                ? this.suckInAnimation.portalGlow : 0;
+            this._drawPortal(ctx, this.entryPortal, 'ENTER', extraGlow);
         }
 
-        // Draw exit portal
+        // Draw exit portal (with extra glow during suck-in)
         if (this.exitPortal.alpha > 0) {
-            this._drawPortal(ctx, this.exitPortal, 'EXIT');
+            const extraGlow = (this.suckInAnimation.active && this.suckInAnimation.type === 'out') 
+                ? this.suckInAnimation.portalGlow : 0;
+            this._drawPortal(ctx, this.exitPortal, 'EXIT', extraGlow);
         }
 
         // Draw timer bar when entry portal is open
@@ -626,14 +912,37 @@ class PortalSystem {
         if (this.isNewWorld && this.state === 'new_world') {
             this._drawExitCountdown(ctx);
         }
-
-        // Draw "NEW WORLD" indicator
-        if (this.isNewWorld && this.state !== 'transitioning_out') {
-            this._drawNewWorldIndicator(ctx);
-        }
     }
 
-    _drawPortal(ctx, portal, label) {
+    _drawVortexParticles(ctx) {
+        ctx.save();
+        for (const p of this.suckInAnimation.vortexParticles) {
+            ctx.globalAlpha = p.alpha;
+            ctx.fillStyle = p.color;
+            
+            // Draw particle with trail effect
+            ctx.beginPath();
+            ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
+            ctx.fill();
+            
+            // Draw motion trail
+            const trailLength = p.speed * 3;
+            const trailAngle = p.angle + Math.PI; // Opposite direction
+            ctx.strokeStyle = p.color;
+            ctx.lineWidth = p.size * 0.6;
+            ctx.globalAlpha = p.alpha * 0.5;
+            ctx.beginPath();
+            ctx.moveTo(p.x, p.y);
+            ctx.lineTo(
+                p.x + Math.cos(trailAngle) * trailLength,
+                p.y + Math.sin(trailAngle) * trailLength
+            );
+            ctx.stroke();
+        }
+        ctx.restore();
+    }
+
+    _drawPortal(ctx, portal, label, extraGlow = 0) {
         ctx.save();
         ctx.globalAlpha = portal.alpha;
 
@@ -648,27 +957,46 @@ class PortalSystem {
 
         ctx.globalAlpha = portal.alpha;
 
-        // Outer glow behind the sprite
-        const glowRadius = portal.radius * 1.5;
+        // Outer glow behind the sprite (enhanced during suck-in)
+        const glowRadius = portal.radius * (1.5 + extraGlow * 0.8);
+        const glowIntensity = Math.min(1, 0.3 + extraGlow * 0.7);
         const glowGrad = ctx.createRadialGradient(
             portal.x, portal.y, portal.radius * 0.3,
             portal.x, portal.y, glowRadius
         );
-        glowGrad.addColorStop(0, this.portalColors[0] + '50');
-        glowGrad.addColorStop(0.5, this.portalColors[1] + '25');
+        glowGrad.addColorStop(0, this.portalColors[0] + (extraGlow > 0 ? 'AA' : '50'));
+        glowGrad.addColorStop(0.5, this.portalColors[1] + (extraGlow > 0 ? '66' : '25'));
         glowGrad.addColorStop(1, this.portalColors[0] + '00');
         ctx.fillStyle = glowGrad;
         ctx.beginPath();
         ctx.arc(portal.x, portal.y, glowRadius, 0, Math.PI * 2);
         ctx.fill();
 
+        // Draw extra pulsing rings during suck-in
+        if (extraGlow > 0) {
+            const numRings = 3;
+            for (let i = 0; i < numRings; i++) {
+                const ringProgress = ((Date.now() * 0.003) + i / numRings) % 1;
+                const ringRadius = portal.radius * (0.5 + ringProgress * 1.5);
+                const ringAlpha = (1 - ringProgress) * extraGlow * 0.6;
+                
+                ctx.strokeStyle = this.portalColors[i % this.portalColors.length];
+                ctx.lineWidth = 2 + (1 - ringProgress) * 3;
+                ctx.globalAlpha = ringAlpha;
+                ctx.beginPath();
+                ctx.arc(portal.x, portal.y, ringRadius, 0, Math.PI * 2);
+                ctx.stroke();
+            }
+            ctx.globalAlpha = portal.alpha;
+        }
+
         // Draw portal sprite
         ctx.save();
         ctx.translate(portal.x, portal.y);
         ctx.rotate(portal.rotation);
 
-        // Scale based on current radius
-        const scale = (portal.radius / portal.maxRadius);
+        // Scale based on current radius (slightly larger during suck-in)
+        const scale = (portal.radius / portal.maxRadius) * (1 + extraGlow * 0.2);
         const drawW = this.portalDrawSize * scale;
         const drawH = this.portalDrawSize * scale;
 
@@ -876,62 +1204,52 @@ class PortalSystem {
     _drawNewWorldBackground(ctx) {
         ctx.save();
 
-        // Dark space background
-        const bgGrad = ctx.createLinearGradient(0, 0, 0, this.canvas.height);
-        bgGrad.addColorStop(0, this.newWorldBgColor1);
-        bgGrad.addColorStop(0.5, this.newWorldBgColor2);
-        bgGrad.addColorStop(1, '#0D0628');
-        ctx.fillStyle = bgGrad;
-        ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
+        // Draw space sprite as scrolling background with seamless loop
+        if (this.spaceLoaded && this.spaceSprite) {
+            const img = this.spaceSprite;
+            const canvasW = this.canvas.width;
+            const canvasH = this.canvas.height;
+            const imgW = img.naturalWidth || img.width;
+            const imgH = img.naturalHeight || img.height;
 
-        // Stars
-        const now = Date.now();
-        for (const star of this.stars) {
-            const twinkle = 0.3 + (Math.sin(now * star.twinkleSpeed + star.twinkleOffset) + 1) * 0.35;
-            ctx.globalAlpha = twinkle * star.brightness;
-            ctx.fillStyle = '#FFFFFF';
-            ctx.beginPath();
-            ctx.arc(star.x, star.y, star.size, 0, Math.PI * 2);
-            ctx.fill();
+            // Calculate scale to cover entire canvas height while maintaining aspect ratio
+            const scaleY = canvasH / imgH;
+            const scale = scaleY; // Scale based on height to maintain proper look
+            
+            // Calculate dimensions
+            const drawW = imgW * scale;
+            const drawH = imgH * scale;
+            
+            // Update scroll position for smooth parallax movement
+            this.spaceScrollX += this.spaceScrollSpeed;
+            
+            // Reset scroll when it exceeds image width (seamless loop)
+            if (this.spaceScrollX >= drawW) {
+                this.spaceScrollX = 0;
+            }
+            
+            // Calculate starting X position (negative for scrolling effect)
+            const startX = -this.spaceScrollX;
+            
+            // Draw the image multiple times to create seamless loop
+            // We need at least 2 copies side by side to cover the screen
+            for (let x = startX; x < canvasW; x += drawW) {
+                ctx.drawImage(
+                    this.spaceSprite,
+                    x, 0,
+                    drawW, drawH
+                );
+            }
+        } else {
+            // Fallback: simple dark gradient if sprite not loaded
+            const bgGrad = ctx.createLinearGradient(0, 0, 0, this.canvas.height);
+            bgGrad.addColorStop(0, '#0F0A2E');
+            bgGrad.addColorStop(0.5, '#1A1145');
+            bgGrad.addColorStop(1, '#0D0628');
+            ctx.fillStyle = bgGrad;
+            ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
         }
 
-        // Shooting stars
-        ctx.globalAlpha = 1;
-        for (const s of this.shootingStars) {
-            ctx.globalAlpha = s.alpha;
-            ctx.strokeStyle = '#FFFFFF';
-            ctx.lineWidth = 1.5;
-            ctx.beginPath();
-            ctx.moveTo(s.x, s.y);
-            ctx.lineTo(s.x - s.vx * (s.length / 3), s.y - s.vy * (s.length / 3));
-            ctx.stroke();
-        }
-
-        // Floating orbs
-        for (const o of this.floatingOrbs) {
-            ctx.globalAlpha = o.alpha;
-            const orbGrad = ctx.createRadialGradient(o.x, o.y, 0, o.x, o.y, o.radius * 2);
-            orbGrad.addColorStop(0, `hsla(${o.hue}, 80%, 70%, 0.6)`);
-            orbGrad.addColorStop(1, `hsla(${o.hue}, 80%, 50%, 0)`);
-            ctx.fillStyle = orbGrad;
-            ctx.beginPath();
-            ctx.arc(o.x, o.y, o.radius * 2, 0, Math.PI * 2);
-            ctx.fill();
-        }
-
-        // Nebula glow at bottom
-        ctx.globalAlpha = 0.15;
-        const nebulaGrad = ctx.createRadialGradient(
-            this.canvas.width / 2, this.canvas.height - 100, 20,
-            this.canvas.width / 2, this.canvas.height - 100, 250
-        );
-        nebulaGrad.addColorStop(0, '#8B5CF6');
-        nebulaGrad.addColorStop(0.4, '#6D28D9');
-        nebulaGrad.addColorStop(1, 'transparent');
-        ctx.fillStyle = nebulaGrad;
-        ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
-
-        ctx.globalAlpha = 1;
         ctx.restore();
     }
 
@@ -1003,10 +1321,28 @@ class PortalSystem {
         this.exitPortal.alpha = 0;
         this.exitPortal.radius = 0;
         this.exitPortal.particles = [];
-        this.shootingStars = [];
-        this.floatingOrbs = [];
         this.timerBarFlash = 0;
         this.transition.progress = 0;
+        
+        // Reset space background scroll
+        this.spaceScrollX = 0;
+        
+        // Reset new animation properties
+        this.suckInAnimation.active = false;
+        this.suckInAnimation.progress = 0;
+        this.isInvincible = false;
+        this.invincibilityTime = 0;
+        
+        // Reset bird scale if bird exists
+        if (this.bird) {
+            this.bird.suckScale = 1;
+            this.bird.releaseAnimation = null;
+        }
+    }
+
+    // Check if bird is being sucked in (for game.js to disable controls)
+    isSuckingIn() {
+        return this.suckInAnimation.active;
     }
 }
 

@@ -42,6 +42,10 @@ class Bird {
         this.baseY = canvas.height / 3.2;
         this.autoFlyAmplitude = 15;
 
+        // Portal suck/release animation scale
+        this.suckScale = 1;
+        this.releaseAnimation = null;
+
                 // Death animation
         this.isDying = false;
         this.deathBounce = false;
@@ -90,6 +94,8 @@ class Bird {
         this.blastScale = 0;
         this.blastAlpha = 1;
         this.hitByRocket = false;
+        this.suckScale = 1;
+        this.releaseAnimation = null;
     }
     dieByRocket(){
         if(!this.isDying) {
@@ -277,6 +283,20 @@ class Bird {
     }
 
     update(currentTime) {
+        // Skip gravity and movement if being sucked into portal or transitioning
+        if (typeof portalSystem !== 'undefined') {
+            const isSucking = portalSystem.isSuckingIn && portalSystem.isSuckingIn();
+            const isTransitioning = portalSystem.isTransitioning && portalSystem.isTransitioning();
+            if (isSucking || isTransitioning) {
+                // Only update animation frames during portal effects, no physics
+                if (currentTime - this.lastFrameTime > this.frameInterval) {
+                    this.currentFrame = (this.currentFrame + 1) % this.frames.length;
+                    this.lastFrameTime = currentTime;
+                }
+                return; // Skip all gravity and movement
+            }
+        }
+
         // Apply gravity (reduced in portal new world)
         let currentGravity = this.gravity;
         if (typeof portalSystem !== 'undefined') {
@@ -321,7 +341,23 @@ class Bird {
 
         ctx.save();
         ctx.translate(this.x + this.width / 2, this.y + this.height / 2);
-        ctx.rotate((this.rotation * Math.PI) / 180);
+        
+        // Apply portal suck-in rotation (spins while being sucked in)
+        const portalRot = this.portalRotation || 0;
+        ctx.rotate((this.rotation * Math.PI) / 180 + (portalRot * Math.PI) / 180);
+        
+        // Apply suck/release scale for portal animation
+        const scale = this.suckScale || 1;
+        
+        // Apply stretch effect (spaghettification toward portal)
+        const stretchX = this.portalStretchX || 1;
+        const stretchY = this.portalStretchY || 1;
+        ctx.scale(scale * stretchX, scale * stretchY);
+        
+        // Apply invincibility flashing effect if active
+        if (typeof portalSystem !== 'undefined' && portalSystem.isInvincible) {
+            ctx.globalAlpha = portalSystem.getInvincibilityAlpha();
+        }
 
         if (this.spriteLoaded && this.spriteSheet) {
             const frame = this.frames[this.currentFrame];

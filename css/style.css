@@ -499,7 +499,7 @@ body {
     pointer-events: auto;
     display: flex;
     flex-direction: column;
-    gap: 50px;
+    gap: 70px;
     align-items: flex-start;
 }
 
@@ -512,7 +512,7 @@ body {
     pointer-events: auto;
     display: flex;
     flex-direction: column;
-    gap: 50px;
+    gap: 70px;
     align-items: flex-start;
 }
 

@@ -232,6 +232,10 @@ class Game {
     } else if (this.gameState === "ready") {
       this.beginPlay();
     } else if (this.gameState === "playing") {
+      // Don't allow flap during portal suck-in animation
+      if (portalSystem.isSuckingIn && portalSystem.isSuckingIn()) {
+        return;
+      }
       this.firstInputReceived = true;
       this.bird.flap();
     }
@@ -602,7 +606,9 @@ class Game {
 
         // Only check pipe collisions if pipes are active (not in new world)
         if (portalSystem.shouldSpawnPipes()) {
-          if (powerUpSystem.isInvincible()) {
+          // Skip collision if invincible (powerup or portal grace period)
+          const isInvincible = powerUpSystem.isInvincible() || portalSystem.checkInvincibility();
+          if (isInvincible) {
           } else {
             if (this.pipeManager.checkCollision(this.bird)) {
               if (shieldSystem.onPipeHit()) {
@@ -624,8 +630,11 @@ class Game {
           }
         }
 
-        // Check ground collision (always active)
-        if (!powerUpSystem.isInvincible()) {
+        // Check ground collision (skip if being sucked into portal, transitioning, or invincible)
+        const isBeingSuckedIn = portalSystem.isSuckingIn && portalSystem.isSuckingIn();
+        const isPortalTransitioning = portalSystem.isTransitioning && portalSystem.isTransitioning();
+        const isGroundInvincible = powerUpSystem.isInvincible() || portalSystem.checkInvincibility();
+        if (!isGroundInvincible && !isBeingSuckedIn && !isPortalTransitioning) {
           if (this.bird.isOutOfBounds(this.groundY)) {
             this.gameOver();
             return;
@@ -659,7 +668,11 @@ class Game {
 
         gravitySystem.update();
 
-        if (!powerUpSystem.isInvincible()) {
+        // Check rocket collision (skip if invincible, being sucked into portal, or transitioning)
+        const isBeingSuckedInRocket = portalSystem.isSuckingIn && portalSystem.isSuckingIn();
+        const isPortalTransitioningRocket = portalSystem.isTransitioning && portalSystem.isTransitioning();
+        const isRocketInvincible = powerUpSystem.isInvincible() || portalSystem.checkInvincibility();
+        if (!isRocketInvincible && !isBeingSuckedInRocket && !isPortalTransitioningRocket) {
           if (rocketSystem.checkCollision(this.bird)) {
             this.gameOverByRocket();
             return;
