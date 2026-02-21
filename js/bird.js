@@ -73,6 +73,7 @@ class Bird {
     }
 
     reset() {
+        this.x = this.canvas.width / 2 - this.width / 2; // Center bird horizontally
         this.y = this.canvas.height / 2;
         this.velocity = 0;
         this.rotation = 0;
@@ -276,10 +277,20 @@ class Bird {
     }
 
     update(currentTime) {
-        this.velocity += this.gravity;
+        // Apply gravity (reduced in portal new world)
+        let currentGravity = this.gravity;
+        if (typeof portalSystem !== 'undefined') {
+            currentGravity *= portalSystem.getGravityMultiplier();
+        }
+        this.velocity += currentGravity;
         
-        if (this.velocity > 6) {
-            this.velocity = 6;
+        // Cap max fall speed (also reduced in new world)
+        let maxFallSpeed = 6;
+        if (typeof portalSystem !== 'undefined' && portalSystem.isInNewWorld()) {
+            maxFallSpeed = 4; // Slower fall in new world
+        }
+        if (this.velocity > maxFallSpeed) {
+            this.velocity = maxFallSpeed;
         }
         
         this.y += this.velocity;

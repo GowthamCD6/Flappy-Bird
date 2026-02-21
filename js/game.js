@@ -586,7 +586,8 @@ class Game {
         this.bird.update(currentTime);
       }
 
-      if (this.firstInputReceived) {
+      // Only update pipes if not in portal new world
+      if (this.firstInputReceived && portalSystem.shouldSpawnPipes()) {
         this.pipeManager.update(currentTime);
       }
 
@@ -599,37 +600,60 @@ class Game {
 
         this.pipeManager.updateSpeed(powerUpSystem.getPipeSpeed());
 
-        if (powerUpSystem.isInvincible()) {
-        } else {
-          if (this.pipeManager.checkCollision(this.bird)) {
-            if (shieldSystem.onPipeHit()) {
-              const destroyedPipe = this.pipeManager.destroyCollidingPipe(this.bird);
-              if (destroyedPipe) {
-                shieldSystem.spawnPipeBreakParticles(destroyedPipe);
+        // Only check pipe collisions if pipes are active (not in new world)
+        if (portalSystem.shouldSpawnPipes()) {
+          if (powerUpSystem.isInvincible()) {
+          } else {
+            if (this.pipeManager.checkCollision(this.bird)) {
+              if (shieldSystem.onPipeHit()) {
+                const destroyedPipe = this.pipeManager.destroyCollidingPipe(this.bird);
+                if (destroyedPipe) {
+                  shieldSystem.spawnPipeBreakParticles(destroyedPipe);
+                }
+                console.log("Shield protected the bird! Pipe destroyed!");
+                this.updateShieldButton();
+              } else {
+                this.gameOver();
+                return;
               }
-              console.log("Shield protected the bird! Pipe destroyed!");
-              this.updateShieldButton();
-            } else {
-              this.gameOver();
-              return;
             }
           }
 
+          if (this.pipeManager.checkScore(this.bird)) {
+            this.score += portalSystem.getScoreMultiplier();
+          }
+        }
+
+        // Check ground collision (always active)
+        if (!powerUpSystem.isInvincible()) {
           if (this.bird.isOutOfBounds(this.groundY)) {
             this.gameOver();
             return;
           }
         }
 
-        if (this.pipeManager.checkScore(this.bird)) {
-          this.score += portalSystem.getScoreMultiplier();
-        }
-
         // Portal system
         if (portalSystem.canTrigger(this.score)) {
           portalSystem.trigger();
+          this.pipeManager.reset(); // Clear pipes when portal appears
         }
         portalSystem.update();
+
+        // Handle portal screen shake
+        if (portalSystem.needsScreenShake) {
+          this.screenShake = {
+            intensity: portalSystem.screenShakeIntensity,
+            duration: portalSystem.screenShakeDuration,
+            startTime: Date.now()
+          };
+          portalSystem.needsScreenShake = false;
+        }
+
+        // Clear pipes when entering/exiting portal
+        if (portalSystem.needsClearPipes) {
+          this.pipeManager.reset();
+          portalSystem.needsClearPipes = false;
+        }
 
         rocketSystem.update(this.score);
 
@@ -807,7 +831,10 @@ class Game {
       this.drawBackground();
     }
 
-    this.pipeManager.draw();
+    // Only draw pipes if not in new world
+    if (portalSystem.shouldSpawnPipes()) {
+      this.pipeManager.draw();
+    }
 
     // Draw ground based on world
     if (portalSystem.isInNewWorld()) {

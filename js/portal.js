@@ -5,14 +5,14 @@ class PortalSystem {
         this.bird = null;
 
         // Portal states: inactive, entry_spawning, entry_open, transitioning_in,
-        //                new_world, exit_open, transitioning_out, cooldown
+        //                new_world, exit_spawning, exit_open, transitioning_out, cooldown
         this.state = 'inactive';
         this.triggerScore = 5;
-        this.portalDuration = 20000; // 20 seconds
+        this.portalDuration = 20000; // 20 seconds to enter
         this.portalOpenTime = 0;
         this.hasTriggered = false;
 
-        // Entry portal
+        // Entry portal - FIXED position
         this.entryPortal = {
             x: 0, y: 0,
             radius: 0, maxRadius: 50,
@@ -49,16 +49,54 @@ class PortalSystem {
         this.shootingStars = [];
         this.floatingOrbs = [];
         this.newWorldTime = 0;
+        this.newWorldDuration = 20000; // 20 seconds in new world before exit portal
+
+        // Bird horizontal movement when portal active
+        this.birdHorizontalSpeed = 1.5;
+        this.birdMovingToPortal = false;
 
         // Score bonus
         this.bonusMultiplier = 2;
 
+        // Reduced gravity in new world (0.5 = half gravity)
+        this.newWorldGravityMultiplier = 0.5;
+
+        // Grace period after exiting portal (no pipes for a while)
+        this.exitGracePeriod = 3000; // 3 seconds grace
+        this.exitTime = 0;
+        this.justExited = false;
+
+        // Flag to signal game.js to clear pipes (set during transitions)
+        this.needsClearPipes = false;
+
+        // Visual effects
+        this.flashAlpha = 0; // Screen flash when portal opens
+        this.needsScreenShake = false; // Signal for screen shake
+        this.screenShakeIntensity = 5;
+        this.screenShakeDuration = 300;
+
         // Timer bar
         this.timerBarFlash = 0;
 
-        // Portal colors
-        this.entryColors = ['#8B5CF6', '#7C3AED', '#6D28D9', '#A78BFA', '#C4B5FD'];
-        this.exitColors = ['#F59E0B', '#D97706', '#B45309', '#FBBF24', '#FDE68A'];
+        // Portal sprite
+        this.spriteLoaded = false;
+        this.portalSprite = new Image();
+        this.portalSprite.onload = () => {
+            this.spriteLoaded = true;
+            console.log('Portal sprite loaded!');
+        };
+        this.portalSprite.onerror = () => {
+            console.log('Portal sprite not found, using fallback');
+        };
+        this.portalSprite.src = 'assets/images/portal.png';
+
+        // Sprite source crop (content area within the 6400x6400 image)
+        this.spriteSrc = { x: 1880, y: 1190, width: 2810, height: 4000 };
+        // Draw size on canvas
+        this.portalDrawSize = 120;
+
+        // Portal colors (for particles & glow) - SAME for both portals now
+        this.portalColors = ['#8B5CF6', '#7C3AED', '#6D28D9', '#A78BFA', '#C4B5FD'];
         this.newWorldBgColor1 = '#0F0A2E';
         this.newWorldBgColor2 = '#1A1145';
 
@@ -92,27 +130,72 @@ class PortalSystem {
     trigger() {
         if (this.state !== 'inactive') return;
 
-        this.state = 'entry_spawning';
+        // Portal opens INSTANTLY - skip spawning animation
+        this.state = 'entry_open';
 
-        // Spawn entry portal on right side of screen
-        this.entryPortal.x = this.canvas.width - 80;
-        this.entryPortal.y = 100 + Math.random() * (this.canvas.height - 280);
-        this.entryPortal.radius = 0;
-        this.entryPortal.alpha = 0;
+        // Spawn entry portal at FIXED position on the right side of screen
+        this.entryPortal.x = this.canvas.width - 80; // Fixed X position
+        this.entryPortal.y = this.canvas.height / 2; // Center Y
+        this.entryPortal.radius = this.entryPortal.maxRadius; // Instantly full size
+        this.entryPortal.alpha = 1; // Instantly visible
         this.entryPortal.rotation = 0;
         this.entryPortal.spawnTime = Date.now();
         this.entryPortal.particles = [];
 
         this.portalOpenTime = Date.now();
         this.hasTriggered = true;
+        this.birdMovingToPortal = true; // Start moving bird toward portal
 
-        console.log('Portal spawning! Fly into it within 20 seconds!');
+        // Visual effects
+        this.flashAlpha = 0.8; // Bright flash when portal opens
+        this.needsScreenShake = true; // Trigger screen shake
+
+        console.log('Portal is open! Fly into it within 20 seconds!');
+    }
+
+    // Check if pipes should spawn (FALSE when in new world, portal active, or during grace period)
+    shouldSpawnPipes() {
+        // No pipes in new world
+        if (this.isNewWorld) return false;
+        
+        // No pipes when portal is active (entry or exit visible)
+        if (this.state === 'entry_open' || this.state === 'entry_spawning' ||
+            this.state === 'transitioning_in' || this.state === 'transitioning_out') {
+            return false;
+        }
+        
+        // No pipes during grace period after exiting
+        if (this.justExited) {
+            const elapsed = Date.now() - this.exitTime;
+            if (elapsed < this.exitGracePeriod) {
+                return false;
+            }
+            this.justExited = false; // Grace period over
+        }
+        
+        return true;
+    }
+
+    // Get gravity multiplier for new world (reduced gravity)
+    getGravityMultiplier() {
+        return this.isNewWorld ? this.newWorldGravityMultiplier : 1;
     }
 
     update(currentTime) {
+        // Decay flash effect (always, even when inactive/cooldown)
+        if (this.flashAlpha > 0) {
+            this.flashAlpha -= 0.03;
+            if (this.flashAlpha < 0) this.flashAlpha = 0;
+        }
+
         if (this.state === 'inactive' || this.state === 'cooldown') return;
 
         const now = Date.now();
+
+        // Move bird horizontally toward portal when active
+        if (this.birdMovingToPortal && this.bird) {
+            this._moveBirdTowardPortal();
+        }
 
         switch (this.state) {
             case 'entry_spawning':
@@ -127,6 +210,9 @@ class PortalSystem {
             case 'new_world':
                 this._updateNewWorld(now);
                 break;
+            case 'exit_spawning':
+                this._updateExitSpawning(now);
+                break;
             case 'exit_open':
                 this._updateExitOpen(now);
                 break;
@@ -136,13 +222,34 @@ class PortalSystem {
         }
 
         // Update portal particles
-        this._updatePortalParticles(this.entryPortal, this.entryColors);
-        this._updatePortalParticles(this.exitPortal, this.exitColors);
+        this._updatePortalParticles(this.entryPortal);
+        this._updatePortalParticles(this.exitPortal);
 
         // Update shooting stars in new world
         if (this.isNewWorld) {
             this._updateShootingStars();
             this._updateFloatingOrbs();
+        }
+    }
+
+    _moveBirdTowardPortal() {
+        if (!this.bird) return;
+
+        // Determine target portal
+        let targetPortal = this.entryPortal;
+        if (this.isNewWorld && this.exitPortal.alpha > 0) {
+            targetPortal = this.exitPortal;
+        }
+
+        // Only move if portal is visible
+        if (targetPortal.alpha < 0.3) return;
+
+        // Move bird horizontally toward portal
+        const birdCenterX = this.bird.x + this.bird.width / 2;
+        const portalX = targetPortal.x;
+
+        if (birdCenterX < portalX - 20) {
+            this.bird.x += this.birdHorizontalSpeed;
         }
     }
 
@@ -158,7 +265,7 @@ class PortalSystem {
 
         // Spawn particles during formation
         if (Math.random() < 0.3) {
-            this._spawnPortalParticle(this.entryPortal, this.entryColors);
+            this._spawnPortalParticle(this.entryPortal);
         }
 
         if (progress >= 1) {
@@ -178,7 +285,7 @@ class PortalSystem {
 
         // Spawn particles
         if (Math.random() < 0.4) {
-            this._spawnPortalParticle(this.entryPortal, this.entryColors);
+            this._spawnPortalParticle(this.entryPortal);
         }
 
         // Check timeout
@@ -198,6 +305,8 @@ class PortalSystem {
             this.transition.startTime = now;
             this.transition.progress = 0;
             this.transition.type = 'in';
+            this.birdMovingToPortal = false;
+            this.needsClearPipes = true; // Signal to clear pipes
             console.log('Entering the portal!');
         }
     }
@@ -216,57 +325,88 @@ class PortalSystem {
             this.state = 'new_world';
             this.newWorldTime = now;
 
-            // Reposition bird to left side
+            // Reposition bird to left side for new world
             this.bird.x = 80;
             this.bird.y = this.canvas.height / 3;
             this.bird.velocity = 0;
 
-            console.log('Welcome to the new world! x2 score bonus!');
+            // Reset entry portal
+            this.entryPortal.alpha = 0;
+            this.entryPortal.radius = 0;
+            this.entryPortal.particles = [];
+
+            // Flash effect when entering new world
+            this.flashAlpha = 1.0;
+
+            console.log('Welcome to the new world! x2 score bonus! No pipes here!');
         }
     }
 
     _updateNewWorld(now) {
-        // Spawn exit portal after 2 seconds in new world
+        // Spawn exit portal after 20 seconds in new world
         const elapsed = now - this.newWorldTime;
-        if (elapsed >= 2000 && this.exitPortal.alpha === 0) {
-            this.exitPortal.x = this.canvas.width - 80;
-            this.exitPortal.y = 100 + Math.random() * (this.canvas.height - 280);
-            this.exitPortal.radius = 0;
-            this.exitPortal.alpha = 0;
+
+        if (elapsed >= this.newWorldDuration) {
+            // Exit portal opens INSTANTLY - skip spawning animation
+            this.exitPortal.x = this.canvas.width - 80; // Fixed X position
+            this.exitPortal.y = this.canvas.height / 2; // Center Y
+            this.exitPortal.radius = this.exitPortal.maxRadius; // Instantly full size
+            this.exitPortal.alpha = 1; // Instantly visible
             this.exitPortal.rotation = 0;
             this.exitPortal.spawnTime = now;
             this.exitPortal.particles = [];
+            this.birdMovingToPortal = true; // Start moving toward exit
+            this.state = 'exit_open'; // Skip spawning, go directly to open
+            
+            // Flash and shake when exit portal appears
+            this.flashAlpha = 0.6;
+            this.needsScreenShake = true;
+            
+            console.log('Exit portal is open! Fly into it to return!');
+        }
+    }
+
+    _updateExitSpawning(now) {
+        const elapsed = now - this.exitPortal.spawnTime;
+        const progress = Math.min(elapsed / this.exitPortal.spawnDuration, 1);
+
+        // Ease out spawn
+        const ease = 1 - Math.pow(1 - progress, 3);
+        this.exitPortal.radius = this.exitPortal.maxRadius * ease;
+        this.exitPortal.alpha = ease;
+        this.exitPortal.rotation += 0.05;
+
+        // Spawn particles
+        if (Math.random() < 0.3) {
+            this._spawnPortalParticle(this.exitPortal);
+        }
+
+        if (progress >= 1) {
             this.state = 'exit_open';
+            console.log('Exit portal is open! Fly into it to return!');
         }
     }
 
     _updateExitOpen(now) {
-        const spawnElapsed = now - this.exitPortal.spawnTime;
-        const spawnProgress = Math.min(spawnElapsed / this.exitPortal.spawnDuration, 1);
-
-        // Ease out spawn
-        const ease = 1 - Math.pow(1 - spawnProgress, 3);
-        this.exitPortal.radius = this.exitPortal.maxRadius * ease;
-        this.exitPortal.alpha = ease;
         this.exitPortal.rotation += 0.06;
 
         // Pulse
-        if (spawnProgress >= 1) {
-            const pulse = Math.sin(now * 0.005) * 5;
-            this.exitPortal.radius = this.exitPortal.maxRadius + pulse;
-        }
+        const pulse = Math.sin(now * 0.005) * 5;
+        this.exitPortal.radius = this.exitPortal.maxRadius + pulse;
 
         // Particles
         if (Math.random() < 0.4) {
-            this._spawnPortalParticle(this.exitPortal, this.exitColors);
+            this._spawnPortalParticle(this.exitPortal);
         }
 
         // Check bird collision with exit portal
-        if (spawnProgress >= 1 && this._checkPortalCollision(this.exitPortal)) {
+        if (this._checkPortalCollision(this.exitPortal)) {
             this.state = 'transitioning_out';
             this.transition.startTime = now;
             this.transition.progress = 0;
             this.transition.type = 'out';
+            this.birdMovingToPortal = false;
+            this.needsClearPipes = true; // Signal to clear pipes when returning
             console.log('Returning to normal world!');
         }
     }
@@ -297,11 +437,18 @@ class PortalSystem {
             this.entryPortal.particles = [];
             this.exitPortal.particles = [];
 
+            // Start grace period - no pipes for a while after exiting
+            this.justExited = true;
+            this.exitTime = Date.now();
+
+            // Flash effect when returning
+            this.flashAlpha = 1.0;
+
             // Allow re-trigger after 30 more points
             this.triggerScore += 30;
             this.hasTriggered = false;
 
-            console.log('Back to normal world! Next portal at score ' + this.triggerScore);
+            console.log('Back to normal world! Grace period active. Next portal at score ' + this.triggerScore);
         }
     }
 
@@ -310,6 +457,7 @@ class PortalSystem {
         this.entryPortal.alpha = 0;
         this.entryPortal.radius = 0;
         this.entryPortal.particles = [];
+        this.birdMovingToPortal = false;
 
         // Allow re-trigger later
         this.triggerScore += 15;
@@ -330,7 +478,7 @@ class PortalSystem {
         return dist < portal.radius + 10;
     }
 
-    _spawnPortalParticle(portal, colors) {
+    _spawnPortalParticle(portal) {
         const angle = Math.random() * Math.PI * 2;
         const dist = portal.radius + 10 + Math.random() * 20;
         portal.particles.push({
@@ -342,13 +490,13 @@ class PortalSystem {
             alpha: 0.8,
             life: 40 + Math.random() * 20,
             maxLife: 60,
-            color: colors[Math.floor(Math.random() * colors.length)],
+            color: this.portalColors[Math.floor(Math.random() * this.portalColors.length)],
             angle: angle,
             speed: 0.8 + Math.random() * 1.5
         });
     }
 
-    _updatePortalParticles(portal, colors) {
+    _updatePortalParticles(portal) {
         for (let i = portal.particles.length - 1; i >= 0; i--) {
             const p = portal.particles[i];
 
@@ -442,9 +590,17 @@ class PortalSystem {
     // =================== DRAWING ===================
 
     draw() {
-        if (this.state === 'inactive' || this.state === 'cooldown') return;
-
         const ctx = this.ctx;
+
+        // Draw screen flash effect (always draw, even during cooldown)
+        if (this.flashAlpha > 0) {
+            ctx.save();
+            ctx.fillStyle = `rgba(139, 92, 246, ${this.flashAlpha})`; // Purple flash
+            ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
+            ctx.restore();
+        }
+
+        if (this.state === 'inactive' || this.state === 'cooldown') return;
 
         // Draw transition overlay
         if (this.state === 'transitioning_in' || this.state === 'transitioning_out') {
@@ -453,17 +609,22 @@ class PortalSystem {
 
         // Draw entry portal
         if (this.entryPortal.alpha > 0) {
-            this._drawPortal(ctx, this.entryPortal, this.entryColors, 'ENTER');
+            this._drawPortal(ctx, this.entryPortal, 'ENTER');
         }
 
         // Draw exit portal
         if (this.exitPortal.alpha > 0) {
-            this._drawPortal(ctx, this.exitPortal, this.exitColors, 'EXIT');
+            this._drawPortal(ctx, this.exitPortal, 'EXIT');
         }
 
         // Draw timer bar when entry portal is open
-        if (this.state === 'entry_open') {
+        if (this.state === 'entry_open' || this.state === 'entry_spawning') {
             this._drawTimerBar(ctx);
+        }
+
+        // Draw countdown to exit portal in new world
+        if (this.isNewWorld && this.state === 'new_world') {
+            this._drawExitCountdown(ctx);
         }
 
         // Draw "NEW WORLD" indicator
@@ -472,11 +633,11 @@ class PortalSystem {
         }
     }
 
-    _drawPortal(ctx, portal, colors, label) {
+    _drawPortal(ctx, portal, label) {
         ctx.save();
         ctx.globalAlpha = portal.alpha;
 
-        // Draw particles first (behind portal)
+        // Draw particles behind portal
         for (const p of portal.particles) {
             ctx.globalAlpha = p.alpha * portal.alpha;
             ctx.fillStyle = p.color;
@@ -486,84 +647,91 @@ class PortalSystem {
         }
 
         ctx.globalAlpha = portal.alpha;
-        ctx.translate(portal.x, portal.y);
 
-        // Outer glow
-        const glowGrad = ctx.createRadialGradient(0, 0, portal.radius * 0.5, 0, 0, portal.radius * 1.5);
-        glowGrad.addColorStop(0, colors[0] + '40');
-        glowGrad.addColorStop(0.5, colors[1] + '20');
-        glowGrad.addColorStop(1, colors[0] + '00');
+        // Outer glow behind the sprite
+        const glowRadius = portal.radius * 1.5;
+        const glowGrad = ctx.createRadialGradient(
+            portal.x, portal.y, portal.radius * 0.3,
+            portal.x, portal.y, glowRadius
+        );
+        glowGrad.addColorStop(0, this.portalColors[0] + '50');
+        glowGrad.addColorStop(0.5, this.portalColors[1] + '25');
+        glowGrad.addColorStop(1, this.portalColors[0] + '00');
         ctx.fillStyle = glowGrad;
         ctx.beginPath();
-        ctx.arc(0, 0, portal.radius * 1.5, 0, Math.PI * 2);
+        ctx.arc(portal.x, portal.y, glowRadius, 0, Math.PI * 2);
         ctx.fill();
 
-        // Spinning rings
-        for (let ring = 0; ring < 3; ring++) {
-            ctx.save();
-            ctx.rotate(portal.rotation * (ring % 2 === 0 ? 1 : -1) + ring * 0.5);
-
-            const ringRadius = portal.radius * (0.6 + ring * 0.2);
-            ctx.strokeStyle = colors[ring % colors.length];
-            ctx.lineWidth = 3 - ring * 0.5;
-            ctx.setLineDash([8, 6 + ring * 3]);
-            ctx.lineDashOffset = -portal.rotation * 20 * (ring + 1);
-            ctx.beginPath();
-            ctx.arc(0, 0, ringRadius, 0, Math.PI * 2);
-            ctx.stroke();
-            ctx.setLineDash([]);
-            ctx.restore();
-        }
-
-        // Inner vortex
-        const innerGrad = ctx.createRadialGradient(0, 0, 0, 0, 0, portal.radius * 0.6);
-        innerGrad.addColorStop(0, '#FFFFFF');
-        innerGrad.addColorStop(0.3, colors[3] || colors[0]);
-        innerGrad.addColorStop(0.7, colors[1]);
-        innerGrad.addColorStop(1, colors[0] + '80');
-        ctx.fillStyle = innerGrad;
-        ctx.beginPath();
-        ctx.arc(0, 0, portal.radius * 0.6, 0, Math.PI * 2);
-        ctx.fill();
-
-        // Swirl lines inside
+        // Draw portal sprite
         ctx.save();
-        ctx.rotate(portal.rotation * 2);
-        for (let i = 0; i < 4; i++) {
-            const angle = (Math.PI * 2 / 4) * i;
-            ctx.strokeStyle = 'rgba(255, 255, 255, 0.4)';
-            ctx.lineWidth = 2;
-            ctx.beginPath();
+        ctx.translate(portal.x, portal.y);
+        ctx.rotate(portal.rotation);
 
-            for (let t = 0; t < 1; t += 0.05) {
-                const spiralR = portal.radius * 0.5 * t;
-                const spiralAngle = angle + t * Math.PI * 2;
-                const sx = Math.cos(spiralAngle) * spiralR;
-                const sy = Math.sin(spiralAngle) * spiralR;
-                if (t === 0) ctx.moveTo(sx, sy);
-                else ctx.lineTo(sx, sy);
-            }
-            ctx.stroke();
+        // Scale based on current radius
+        const scale = (portal.radius / portal.maxRadius);
+        const drawW = this.portalDrawSize * scale;
+        const drawH = this.portalDrawSize * scale;
+
+        if (this.spriteLoaded && this.portalSprite) {
+            // Same sprite for both portals - no tint difference
+            ctx.drawImage(
+                this.portalSprite,
+                this.spriteSrc.x, this.spriteSrc.y,
+                this.spriteSrc.width, this.spriteSrc.height,
+                -drawW / 2, -drawH / 2,
+                drawW, drawH
+            );
+        } else {
+            // Fallback: draw code portal if sprite not loaded
+            this._drawFallbackPortal(ctx, portal);
         }
+
         ctx.restore();
 
-        // Bright core
-        ctx.fillStyle = 'rgba(255, 255, 255, 0.8)';
-        ctx.beginPath();
-        ctx.arc(0, 0, 5 + Math.sin(Date.now() * 0.01) * 2, 0, Math.PI * 2);
-        ctx.fill();
-
-        // Label
-        ctx.rotate(-portal.rotation); // Counter-rotate for readable text
-        ctx.font = 'bold 10px Arial';
+        // Label below portal
+        ctx.save();
+        ctx.globalAlpha = portal.alpha;
+        ctx.font = 'bold 11px Arial';
         ctx.fillStyle = '#FFFFFF';
         ctx.textAlign = 'center';
-        ctx.strokeStyle = 'rgba(0,0,0,0.6)';
+        ctx.strokeStyle = 'rgba(0,0,0,0.7)';
         ctx.lineWidth = 2;
-        ctx.strokeText(label, 0, portal.radius + 18);
-        ctx.fillText(label, 0, portal.radius + 18);
+        const labelY = portal.y + (drawH / 2) + 16;
+        ctx.strokeText(label, portal.x, labelY);
+        ctx.fillText(label, portal.x, labelY);
+        ctx.restore();
 
         ctx.restore();
+    }
+
+    _drawFallbackPortal(ctx, portal) {
+        // Simple fallback if sprite fails to load
+        const r = portal.radius * 0.6;
+        const innerGrad = ctx.createRadialGradient(0, 0, 0, 0, 0, r);
+        innerGrad.addColorStop(0, '#FFFFFF');
+        innerGrad.addColorStop(0.3, this.portalColors[3] || this.portalColors[0]);
+        innerGrad.addColorStop(0.7, this.portalColors[1]);
+        innerGrad.addColorStop(1, this.portalColors[0] + '80');
+        ctx.fillStyle = innerGrad;
+        ctx.beginPath();
+        ctx.arc(0, 0, r, 0, Math.PI * 2);
+        ctx.fill();
+
+        // Spinning ring
+        ctx.strokeStyle = this.portalColors[0];
+        ctx.lineWidth = 3;
+        ctx.setLineDash([8, 8]);
+        ctx.lineDashOffset = -portal.rotation * 20;
+        ctx.beginPath();
+        ctx.arc(0, 0, portal.radius * 0.8, 0, Math.PI * 2);
+        ctx.stroke();
+        ctx.setLineDash([]);
+
+        // Core
+        ctx.fillStyle = 'rgba(255, 255, 255, 0.8)';
+        ctx.beginPath();
+        ctx.arc(0, 0, 5, 0, Math.PI * 2);
+        ctx.fill();
     }
 
     _drawTimerBar(ctx) {
@@ -609,6 +777,23 @@ class PortalSystem {
         ctx.textAlign = 'center';
         ctx.fillText('PORTAL ' + seconds + 's', this.canvas.width / 2, barY - 4);
 
+        ctx.restore();
+    }
+
+    _drawExitCountdown(ctx) {
+        const elapsed = Date.now() - this.newWorldTime;
+        const remaining = Math.max(0, this.newWorldDuration - elapsed);
+        const seconds = Math.ceil(remaining / 1000);
+
+        ctx.save();
+        ctx.font = 'bold 12px Arial';
+        ctx.fillStyle = '#A78BFA';
+        ctx.textAlign = 'center';
+        ctx.strokeStyle = 'rgba(0,0,0,0.5)';
+        ctx.lineWidth = 2;
+        const text = 'EXIT PORTAL IN ' + seconds + 's';
+        ctx.strokeText(text, this.canvas.width / 2, 50);
+        ctx.fillText(text, this.canvas.width / 2, 50);
         ctx.restore();
     }
 
@@ -806,6 +991,12 @@ class PortalSystem {
         this.triggerScore = 5;
         this.isNewWorld = false;
         this.worldTransition = 0;
+        this.birdMovingToPortal = false;
+        this.justExited = false;
+        this.exitTime = 0;
+        this.needsClearPipes = false;
+        this.flashAlpha = 0;
+        this.needsScreenShake = false;
         this.entryPortal.alpha = 0;
         this.entryPortal.radius = 0;
         this.entryPortal.particles = [];
