@@ -282,6 +282,14 @@ class Bird {
         this.velocity = this.jumpStrength;
     }
 
+    // Update only animation (no physics) - used in space world floating mode
+    updateAnimation(currentTime) {
+        if (currentTime - this.lastFrameTime > this.frameInterval) {
+            this.currentFrame = (this.currentFrame + 1) % this.frames.length;
+            this.lastFrameTime = currentTime;
+        }
+    }
+
     update(currentTime) {
         // Skip gravity and movement if being sucked into portal or transitioning
         if (typeof portalSystem !== 'undefined') {

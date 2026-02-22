@@ -71,6 +71,8 @@ class Game {
 
     portalSystem.init(this.bird, this.canvas);
 
+    spaceWorldSystem.init(this.bird, this.canvas);
+
     const powersContainer = document.getElementById("powersContainer");
     if (powersContainer) powersContainer.classList.add("hidden");
 
@@ -237,7 +239,11 @@ class Game {
         return;
       }
       this.firstInputReceived = true;
-      this.bird.flap();
+      
+      // In space world, use floating controls instead of flap
+      if (!spaceWorldSystem.isActive) {
+        this.bird.flap();
+      }
     }
   }
 
@@ -541,6 +547,8 @@ class Game {
 
     portalSystem.reset();
 
+    spaceWorldSystem.reset();
+
     const powerBtnContainer = document.getElementById("powerBtnContainer");
     if (powerBtnContainer) powerBtnContainer.classList.add("hidden");
 
@@ -587,7 +595,24 @@ class Game {
       if (!this.firstInputReceived) {
         this.bird.updateAutoFly(currentTime);
       } else {
-        this.bird.update(currentTime);
+        // In space world, use floating movement instead of gravity-based
+        if (portalSystem.isInNewWorld() && spaceWorldSystem.isActive) {
+          // Space world floating update - no gravity flapping
+          this.bird.updateAnimation(currentTime);
+          spaceWorldSystem.update(currentTime);
+        } else {
+          this.bird.update(currentTime);
+          
+          // Activate space world when entering new world
+          if (portalSystem.isInNewWorld() && !spaceWorldSystem.isActive) {
+            spaceWorldSystem.activate();
+          }
+        }
+        
+        // Deactivate space world when leaving
+        if (!portalSystem.isInNewWorld() && spaceWorldSystem.isActive) {
+          spaceWorldSystem.deactivate();
+        }
       }
 
       // Only update pipes if not in portal new world
@@ -872,6 +897,11 @@ class Game {
     gravitySystem.draw();
 
     portalSystem.draw();
+
+    // Draw space world coins
+    if (spaceWorldSystem.isActive) {
+      spaceWorldSystem.draw(ctx);
+    }
 
     if (this.gameState === "playing") {
       ctx.fillStyle = "white";
