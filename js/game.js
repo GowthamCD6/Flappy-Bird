@@ -13,6 +13,28 @@ class Game {
     this.resizeCanvas();
     this.spriteLoaded = false;
 
+    // Sound system
+    this.sounds = {
+      flap: new Audio('assets/sounds/flap.mp3'),
+      point: new Audio('assets/sounds/point.mp3'),
+      hit: new Audio('assets/sounds/flappy-bird-hit-sound.mp3'),
+      die: new Audio('assets/sounds/die.mp3'),
+      swoosh: new Audio('assets/sounds/swoosh.mp3'),
+      blast: new Audio('assets/sounds/blast.mp3'),
+    };
+    // Set volumes
+    this.sounds.flap.volume = 0.4;
+    this.sounds.point.volume = 0.5;
+    this.sounds.hit.volume = 0.5;
+    this.sounds.die.volume = 0.5;
+    this.sounds.swoosh.volume = 0.4;
+    this.sounds.blast.volume = 0.6;
+
+    // Background music
+    this.music = new Audio('assets/sounds/MainTheme.mp3');
+    this.music.loop = true;
+    this.music.volume = 0.3;
+
     this.spriteSheet = new Image();
     this.spriteSheet.onload = () => {
       this.spriteLoaded = true;
@@ -285,12 +307,23 @@ class Game {
       // In space world, use floating controls instead of flap
       if (!spaceWorldSystem.isActive) {
         this.bird.flap();
+        this.playSound('flap');
       }
     }
   }
 
   toggleSettings() {
     this.showSettings = !this.showSettings;
+  }
+
+  // Play a sound effect
+  playSound(name) {
+    const sound = this.sounds[name];
+    if (!sound) return;
+    try {
+      sound.currentTime = 0;
+      sound.play().catch(() => {});
+    } catch (e) {}
   }
 
   // Load player coins from localStorage
@@ -402,6 +435,7 @@ class Game {
     this.playerCoins -= price;
     if (!this.ownedItems[itemName]) this.ownedItems[itemName] = 0;
     this.ownedItems[itemName]++;
+    this.playSound('swoosh');
     this.savePlayerCoins();
     this.saveOwnedItems();
     this.updateShopDisplay();
@@ -452,6 +486,7 @@ class Game {
 
     const activated = powerUpSystem.activate(currentTime);
     if (activated) {
+      this.playSound('swoosh');
       // Decrement quantity
       this.ownedItems.power--;
       this.saveOwnedItems();
@@ -529,6 +564,7 @@ class Game {
 
     const activated = gravitySystem.activate();
     if (activated && gravityBtn) {
+      this.playSound('blast');
       // Decrement quantity
       this.ownedItems.antibomb--;
       this.saveOwnedItems();
@@ -590,6 +626,7 @@ class Game {
     this.clearGameOverTimeout();
     this.gameState = "ready";
     this.firstInputReceived = false;
+    this.playSound('swoosh');
 
     const startScreen = document.getElementById("startScreen");
     if (startScreen) startScreen.classList.add("hidden");
@@ -603,6 +640,10 @@ class Game {
     this.gameState = "playing";
     this.firstInputReceived = true;
     this.isPaused = false;
+
+    // Start background music
+    this.music.currentTime = 0;
+    this.music.play().catch(() => {});
 
     const getReadyScreen = document.getElementById("getReadyScreen");
     if (getReadyScreen) getReadyScreen.classList.add("hidden");
@@ -690,6 +731,11 @@ class Game {
       this.gameState = "dying";
       this.bird.die();
       this.isPaused = false;
+      this.playSound('hit');
+      this.music.pause();
+      
+      // Play die sound slightly delayed
+      setTimeout(() => this.playSound('die'), 300);
       
       // Trigger screen shake
       this.screenShake = {
@@ -717,6 +763,11 @@ class Game {
       this.gameState = "blasting";
       this.bird.dieByRocket();
       this.isPaused = false;
+      this.playSound('blast');
+      this.music.pause();
+      
+      // Play die sound slightly delayed
+      setTimeout(() => this.playSound('die'), 400);
       
       // Stronger screen shake for rocket explosion
       this.screenShake = {
@@ -954,6 +1005,7 @@ class Game {
                   shieldSystem.spawnPipeBreakParticles(destroyedPipe);
                 }
                 console.log("Shield protected the bird! Pipe destroyed!");
+                this.playSound('blast');
                 this.updateShieldButton();
               } else {
                 this.gameOver();
@@ -965,6 +1017,7 @@ class Game {
           if (this.pipeManager.checkScore(this.bird)) {
             this.score += portalSystem.getScoreMultiplier();
             this.updateInGameScore();
+            this.playSound('point');
             // Earn coins when scoring (5 coins per point, multiplied in portal)
             // Earn 3 coins per score (multiplied in portal)
             this.addCoins(3 * portalSystem.getScoreMultiplier());

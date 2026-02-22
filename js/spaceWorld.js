@@ -431,9 +431,8 @@ class SpaceWorldSystem {
     }
     
     playCoinSound() {
-        // Audio implementation - can be connected to sound system
         try {
-            const audio = new Audio('assets/sounds/coin.mp3');
+            const audio = new Audio('assets/sounds/point.mp3');
             audio.volume = 0.3;
             audio.play().catch(() => {});
         } catch (e) {

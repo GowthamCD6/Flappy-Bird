@@ -136,8 +136,11 @@
             ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
             ctx.fill();
         }
+        ctx.globalAlpha = 1;
 
         ctx.save();
+        ctx.imageSmoothingEnabled = true;
+        ctx.webkitImageSmoothingEnabled = true;
         ctx.translate(this.x + this.width / 2, this.y + this.height / 2);
         
         // Rotate based on gravity state

@@ -7,7 +7,7 @@ class PortalSystem {
         // Portal states: inactive, entry_spawning, entry_open, transitioning_in,
         //                new_world, exit_spawning, exit_open, transitioning_out, cooldown
         this.state = 'inactive';
-        this.triggerScore = 5;
+        this.triggerScore = 30;
         this.portalDuration = 20000; // 20 seconds to enter
         this.portalOpenTime = 0;
         this.hasTriggered = false;
@@ -1460,7 +1460,7 @@ class PortalSystem {
     reset() {
         this.state = 'inactive';
         this.hasTriggered = false;
-        this.triggerScore = 5;
+        this.triggerScore = 30;
         this.isNewWorld = false;
         this.worldTransition = 0;
         this.birdMovingToPortal = false;
