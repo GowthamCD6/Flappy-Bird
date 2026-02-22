@@ -55,14 +55,15 @@ class SpaceWorldSystem {
         this.magnetActive = false;
         this.magnetRange = 100;
         
-        // Load saved coins from localStorage
-        this.loadCoins();
+        // Callback to add coins to main game
+        this.onCoinCollected = null;
     }
     
-    init(bird, canvas) {
+    init(bird, canvas, onCoinCollected) {
         this.bird = bird;
         this.canvas = canvas;
         this.ctx = canvas.getContext('2d');
+        this.onCoinCollected = onCoinCollected || null;
         this.setupControls();
     }
     
@@ -143,11 +144,7 @@ class SpaceWorldSystem {
         this.moveDown = false;
         this.floatVelocity = 0;
         
-        // Save collected coins
-        this.totalCoins += this.collectedCoins;
-        this.saveCoins();
-        
-        console.log(`Space World ended! Collected ${this.collectedCoins} coins. Total: ${this.totalCoins}`);
+        console.log(`Space World ended! Collected ${this.collectedCoins} coins.`);
     }
     
     update(deltaTime) {
@@ -388,6 +385,11 @@ class SpaceWorldSystem {
         coin.collected = true;
         coin.alpha = 0;
         this.collectedCoins++;
+        
+        // Add coin to main game's coin balance
+        if (this.onCoinCollected) {
+            this.onCoinCollected(1);
+        }
         
         // Create sparkle effect
         this.createSparkles(coin.x, coin.y);

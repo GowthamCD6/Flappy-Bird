@@ -15,12 +15,12 @@ class PortalSystem {
         // Entry portal - FIXED position
         this.entryPortal = {
             x: 0, y: 0,
-            radius: 0, maxRadius: 50,
+            radius: 0, maxRadius: 60,
             rotation: 0,
             particles: [],
             alpha: 0,
             spawnTime: 0,
-            spawnDuration: 1500 // 1.5s to fully form
+            spawnDuration: 400 // Fast 0.4s pop open
         };
 
         // Exit portal (in new world)
@@ -31,7 +31,7 @@ class PortalSystem {
             particles: [],
             alpha: 0,
             spawnTime: 0,
-            spawnDuration: 1500
+            spawnDuration: 400 // Fast 0.4s pop open
         };
 
         // Transition effect
@@ -67,6 +67,12 @@ class PortalSystem {
         this.invincibilityDuration = 3000; // 3 seconds invincibility
         this.invincibilityTime = 0;
         this.isInvincible = false;
+
+        // Autopilot during invincibility period
+        this.autopilotActive = false;
+        this.autopilotTargetY = 0;
+        this.autopilotFlapCooldown = 0;
+        this.autopilotLastFlapTime = 0;
 
         // New world properties
         this.isNewWorld = false;
@@ -143,6 +149,43 @@ class PortalSystem {
         this.bird = bird;
         this.canvas = canvas;
         this.ctx = canvas.getContext('2d');
+        
+        // Pre-load portal position so it's ready instantly
+        this._preloadPortal();
+    }
+    
+    // Pre-load portal at game start - no lag when it appears
+    _preloadPortal() {
+        if (!this.canvas) return;
+        
+        // Pre-set entry portal position (hidden but ready)
+        this.entryPortal.x = this.canvas.width - 80;
+        this.entryPortal.y = this.canvas.height / 2;
+        this.entryPortal.radius = this.entryPortal.maxRadius;
+        this.entryPortal.alpha = 0; // Hidden until triggered
+        this.entryPortal.rotation = 0;
+        this.entryPortal.particles = [];
+        
+        // Pre-generate some particles so they're ready
+        for (let i = 0; i < 10; i++) {
+            const angle = Math.random() * Math.PI * 2;
+            const dist = this.entryPortal.maxRadius + 10 + Math.random() * 20;
+            this.entryPortal.particles.push({
+                x: this.entryPortal.x + Math.cos(angle) * dist,
+                y: this.entryPortal.y + Math.sin(angle) * dist,
+                targetX: this.entryPortal.x,
+                targetY: this.entryPortal.y,
+                size: 2 + Math.random() * 4,
+                alpha: 0, // Hidden
+                life: 40 + Math.random() * 20,
+                maxLife: 60,
+                color: this.portalColors[Math.floor(Math.random() * this.portalColors.length)],
+                angle: angle,
+                speed: 0.8 + Math.random() * 1.5
+            });
+        }
+        
+        console.log('Portal pre-loaded and ready!');
     }
 
     canTrigger(score) {
@@ -152,26 +195,29 @@ class PortalSystem {
     trigger() {
         if (this.state !== 'inactive') return;
 
-        // Portal opens INSTANTLY - already fully formed when bird sees it
+        // Portal appears INSTANTLY - already pre-loaded!
         this.state = 'entry_open';
-
-        // Spawn entry portal at FIXED position on the right side of screen
-        this.entryPortal.x = this.canvas.width - 80; // Fixed X position
-        this.entryPortal.y = this.canvas.height / 2; // Center Y
-        this.entryPortal.radius = this.entryPortal.maxRadius; // INSTANT full size
-        this.entryPortal.alpha = 1; // INSTANT full visibility
-        this.entryPortal.rotation = 0;
-        this.entryPortal.spawnTime = Date.now();
-        this.entryPortal.particles = [];
-
         this.portalOpenTime = Date.now();
+
+        // Portal is already positioned from preload, just show it
+        this.entryPortal.alpha = 1; // Instantly visible
+        this.entryPortal.radius = this.entryPortal.maxRadius;
+        
+        // Activate particles
+        for (const p of this.entryPortal.particles) {
+            p.alpha = 0.8;
+        }
+
         this.hasTriggered = true;
-        this.birdMovingToPortal = true; // Start moving bird toward portal
+        this.birdMovingToPortal = true; // Start moving immediately
 
-        // NO flash effect - portal just appears smoothly
-        // this.flashAlpha = 0; // Removed purple flash
+        // Flash effect for instant appearance
+        this.flashAlpha = 0.5;
+        this.needsScreenShake = true;
+        this.screenShakeIntensity = 5;
+        this.screenShakeDuration = 150;
 
-        console.log('Portal is open! Fly into it within 20 seconds!');
+        console.log('Portal is spawning...');
     }
 
     // Check if pipes should spawn (FALSE when in new world, portal active, or during grace period)
@@ -261,15 +307,18 @@ class PortalSystem {
             targetPortal = this.exitPortal;
         }
 
-        // Only move if portal is visible
-        if (targetPortal.alpha < 0.3) return;
+        // Only move if portal is visible enough
+        if (targetPortal.alpha < 0.4) return;
 
-        // Move bird horizontally toward portal
+        // Move bird horizontally toward portal with smooth acceleration
         const birdCenterX = this.bird.x + this.bird.width / 2;
         const portalX = targetPortal.x;
+        const distance = portalX - birdCenterX;
 
-        if (birdCenterX < portalX - 20) {
-            this.bird.x += this.birdHorizontalSpeed;
+        if (distance > 20) {
+            // Smooth movement - faster when far, slower when close
+            const speed = Math.min(this.birdHorizontalSpeed, distance * 0.02 + 0.5);
+            this.bird.x += speed;
         }
     }
 
@@ -277,20 +326,43 @@ class PortalSystem {
         const elapsed = now - this.entryPortal.spawnTime;
         const progress = Math.min(elapsed / this.entryPortal.spawnDuration, 1);
 
-        // Ease out
-        const ease = 1 - Math.pow(1 - progress, 3);
-        this.entryPortal.radius = this.entryPortal.maxRadius * ease;
-        this.entryPortal.alpha = ease;
-        this.entryPortal.rotation += 0.05;
+        // Elastic ease-out for snappy "pop" effect
+        const ease = progress < 1 
+            ? 1 - Math.pow(2, -10 * progress) * Math.cos(progress * Math.PI * 2) * (1 - progress)
+            : 1;
+        
+        // Overshoot then settle for bouncy feel
+        let sizeMultiplier = ease;
+        if (progress > 0.3 && progress < 0.7) {
+            sizeMultiplier = ease * (1 + Math.sin((progress - 0.3) * Math.PI / 0.4) * 0.15);
+        }
+        
+        this.entryPortal.radius = this.entryPortal.maxRadius * Math.min(sizeMultiplier, 1.1);
+        this.entryPortal.alpha = Math.min(ease * 1.2, 1);
+        this.entryPortal.rotation += 0.08 + (progress * 0.04); // Quick spin
 
-        // Spawn particles during formation
-        if (Math.random() < 0.3) {
+        // Burst of particles at start
+        if (progress < 0.3) {
+            // Spawn multiple particles in burst
+            for (let i = 0; i < 3; i++) {
+                if (Math.random() < 0.6) {
+                    this._spawnPortalParticle(this.entryPortal);
+                }
+            }
+        } else if (Math.random() < 0.3) {
             this._spawnPortalParticle(this.entryPortal);
+        }
+
+        // Allow bird movement immediately
+        if (progress >= 0.2 && !this.birdMovingToPortal) {
+            this.birdMovingToPortal = true;
         }
 
         if (progress >= 1) {
             this.state = 'entry_open';
             this.portalOpenTime = now;
+            this.entryPortal.radius = this.entryPortal.maxRadius; // Normalize size
+            this.flashAlpha = 0;
             console.log('Portal is open! You have 20 seconds!');
         }
     }
@@ -419,19 +491,35 @@ class PortalSystem {
         const elapsed = now - this.exitPortal.spawnTime;
         const progress = Math.min(elapsed / this.exitPortal.spawnDuration, 1);
 
-        // Ease out spawn
-        const ease = 1 - Math.pow(1 - progress, 3);
-        this.exitPortal.radius = this.exitPortal.maxRadius * ease;
-        this.exitPortal.alpha = ease;
-        this.exitPortal.rotation += 0.05;
+        // Elastic ease-out for snappy "pop" effect
+        const ease = progress < 1 
+            ? 1 - Math.pow(2, -10 * progress) * Math.cos(progress * Math.PI * 2) * (1 - progress)
+            : 1;
+        
+        // Overshoot then settle
+        let sizeMultiplier = ease;
+        if (progress > 0.3 && progress < 0.7) {
+            sizeMultiplier = ease * (1 + Math.sin((progress - 0.3) * Math.PI / 0.4) * 0.15);
+        }
+        
+        this.exitPortal.radius = this.exitPortal.maxRadius * Math.min(sizeMultiplier, 1.1);
+        this.exitPortal.alpha = Math.min(ease * 1.2, 1);
+        this.exitPortal.rotation += 0.08 + (progress * 0.04);
 
-        // Spawn particles
-        if (Math.random() < 0.3) {
+        // Burst of particles at start
+        if (progress < 0.3) {
+            for (let i = 0; i < 3; i++) {
+                if (Math.random() < 0.6) {
+                    this._spawnPortalParticle(this.exitPortal);
+                }
+            }
+        } else if (Math.random() < 0.3) {
             this._spawnPortalParticle(this.exitPortal);
         }
 
         if (progress >= 1) {
             this.state = 'exit_open';
+            this.exitPortal.radius = this.exitPortal.maxRadius;
             console.log('Exit portal is open! Fly into it to return!');
         }
     }
@@ -525,6 +613,11 @@ class PortalSystem {
            this.isInvincible = true;
            this.invincibilityTime = Date.now();
 
+           // Start autopilot mode during invincibility
+           this.autopilotActive = true;
+           this.autopilotTargetY = this.canvas.height / 2; // Keep bird centered
+           this.autopilotLastFlapTime = Date.now();
+
            //No purple flash
            // this.flashAlpha= 0.8
 
@@ -559,11 +652,14 @@ class PortalSystem {
         const dy = birdCY - portal.y;
         const dist = Math.sqrt(dx * dx + dy * dy);
 
-        // Larger capture radius - once bird gets close, it WILL be sucked in
-        return dist < portal.radius + 30;
+        // Larger capture radius - bird gets sucked in when it gets close
+        return dist < portal.radius + 45;
     }
 
     _spawnPortalParticle(portal) {
+        // Limit particles to avoid performance issues
+        if (portal.particles.length >= 20) return;
+        
         const angle = Math.random() * Math.PI * 2;
         const dist = portal.radius + 10 + Math.random() * 20;
         portal.particles.push({
@@ -633,12 +729,12 @@ class PortalSystem {
         // Smooth scale progress - gradual shrinking that speeds up near the end
         const scaleProgress = smoothEaseInOut(t);
         
-        // Very gentle spiral motion - smooth and consistent
-        const spiralSpeed = 0.02 + t * 0.03; // Slowly increasing spiral speed
+        // Gentle spiral motion - smooth and subtle
+        const spiralSpeed = 0.015 + t * 0.02; // Slower spiral speed for smoother feel
         this.suckInAnimation.spiralAngle += spiralSpeed;
         
         // The spiral gets tighter as the bird approaches (radius decreases smoothly)
-        const startRadius = this.suckInAnimation.spiralRadius;
+        const startRadius = this.suckInAnimation.spiralRadius * 0.5; // Reduced spiral radius
         const currentRadius = startRadius * (1 - positionProgress);
         
         // Calculate smooth position with gentle spiral
@@ -647,7 +743,7 @@ class PortalSystem {
         const startX = this.suckInAnimation.startX;
         const startY = this.suckInAnimation.startY;
         
-        // Smooth interpolation toward center with spiral orbit
+        // Smooth interpolation toward center with subtle spiral orbit
         const spiralOffsetX = Math.cos(this.suckInAnimation.spiralAngle) * currentRadius;
         const spiralOffsetY = Math.sin(this.suckInAnimation.spiralAngle) * currentRadius;
         
@@ -655,7 +751,7 @@ class PortalSystem {
         this.bird.x = startX + (targetX - startX) * positionProgress + spiralOffsetX;
         this.bird.y = startY + (targetY - startY) * positionProgress + spiralOffsetY;
 
-        // Smooth scale reduction - original size to small (1.0 to 0.1)
+        // Smooth scale reduction - original size to small (1.0 to 0.05)
         // Starts slow, accelerates in middle, slows at end
         this.bird.suckScale = 1 - (scaleProgress * 0.9); // Scale from 1 to 0.1
 
@@ -718,6 +814,9 @@ class PortalSystem {
     }
 
     _spawnVortexParticle(portal) {
+        // Limit vortex particles to avoid performance issues
+        if (this.suckInAnimation.vortexParticles.length >= 30) return;
+        
         const angle = Math.random() * Math.PI * 2;
         const dist = portal.radius + 30 + Math.random() * 60;
         this.suckInAnimation.vortexParticles.push({
@@ -800,9 +899,53 @@ class PortalSystem {
         const elapsed = Date.now() - this.invincibilityTime;
         if (elapsed >= this.invincibilityDuration) {
             this.isInvincible = false;
+            this.autopilotActive = false; // End autopilot when invincibility ends
             return false;
         }
         return true;
+    }
+
+    // Update autopilot - keeps bird flying straight at stable height
+    updateAutopilot() {
+        if (!this.autopilotActive || !this.bird) return false;
+
+        const canvasHeight = this.canvas.height;
+        
+        // Target is slightly above center for comfortable viewing
+        const targetY = canvasHeight * 0.4;
+        
+        // Smoothly move bird to target Y position (straight flight)
+        const currentY = this.bird.y;
+        const diff = targetY - currentY;
+        
+        // Gradually adjust position for smooth straight flight
+        if (Math.abs(diff) > 2) {
+            // Move toward target smoothly
+            this.bird.y += diff * 0.05;
+        }
+        
+        // Keep velocity at 0 for straight flight (no gravity effect)
+        this.bird.velocity = 0;
+        
+        // Keep bird level (no rotation)
+        this.bird.rotation = 0;
+        
+        return true; // Autopilot is active
+    }
+
+    // Break autopilot when user taps
+    breakAutopilot() {
+        if (this.autopilotActive) {
+            this.autopilotActive = false;
+            console.log('Autopilot disengaged - manual control active');
+            return true;
+        }
+        return false;
+    }
+
+    // Check if autopilot is currently active
+    isAutopilotActive() {
+        return this.autopilotActive;
     }
 
     // Get invincibility flash alpha for visual feedback
@@ -841,11 +984,22 @@ class PortalSystem {
         ctx.strokeText(text, this.canvas.width / 2, y);
         ctx.fillText(text, this.canvas.width / 2, y);
 
+        // Draw autopilot indicator if active
+        if (this.autopilotActive) {
+            ctx.font = 'bold 10px Arial';
+            ctx.shadowColor = '#3B82F6'; // Blue glow
+            ctx.shadowBlur = 6 * pulse;
+            ctx.fillStyle = '#60A5FA'; // Light blue
+            const autopilotText = '✈ AUTOPILOT (tap to control)';
+            ctx.strokeText(autopilotText, this.canvas.width / 2, y + 16);
+            ctx.fillText(autopilotText, this.canvas.width / 2, y + 16);
+        }
+
         // Draw progress bar for invincibility
         const barWidth = 80;
         const barHeight = 4;
         const barX = (this.canvas.width - barWidth) / 2;
-        const barY = y + 8;
+        const barY = this.autopilotActive ? y + 24 : y + 8;
         const progress = remaining / this.invincibilityDuration;
 
         // Bar background
@@ -1333,11 +1487,18 @@ class PortalSystem {
         this.isInvincible = false;
         this.invincibilityTime = 0;
         
+        // Reset autopilot
+        this.autopilotActive = false;
+        this.autopilotLastFlapTime = 0;
+        
         // Reset bird scale if bird exists
         if (this.bird) {
             this.bird.suckScale = 1;
             this.bird.releaseAnimation = null;
         }
+        
+        // Pre-load portal for next game - ready instantly!
+        this._preloadPortal();
     }
 
     // Check if bird is being sucked in (for game.js to disable controls)

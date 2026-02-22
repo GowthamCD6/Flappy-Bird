@@ -50,7 +50,7 @@ class Bird {
         this.isDying = false;
         this.deathBounce = false;
         this.deathTime = 0;
-        this.deathPauseTime = 150; // Brief pause at peak of bounce
+        this.deathPauseTime = 300; // Brief pause at peak of bounce
         this.hitFlashAlpha = 0;
         
         // Blast/Explosion effect
@@ -119,7 +119,7 @@ class Bird {
             this.isDying = true;
             this.deathBounce = true;
             this.deathTime = Date.now();
-            this.velocity = -6; // strong bounce up like origial flappy bird
+            this.velocity = -7; // strong bounce up like original flappy bird
             this.hitFlashAlpha = 1; // Flash effect
             this.currentFrame = 1; // use middle frame (wings level)
         }
@@ -248,13 +248,13 @@ class Bird {
         }
 
 
-        //Apply gravity (accelerating fall)
-        const deathGravity = 0.5;
+        //Apply gravity (accelerating fall) - slower for dramatic effect
+        const deathGravity = 0.25;
         this.velocity += deathGravity;
 
-        //Terminal velocity
-        if(this.velocity > 15) {
-            this.velocity = 15;
+        //Terminal velocity - slower fall
+        if(this.velocity > 8) {
+            this.velocity = 8;
         }
 
 
@@ -267,12 +267,11 @@ class Bird {
             this.rotation += (targetRotation - this.rotation) * 0.15;
             if(this.rotation > 90) this.rotation = 90;
         }
-        // stop at ground with small bounce 
-        if(this.y + this.height >= groundY) {
-            this.y = groundY - this.height;
-            this.velocity = 0;
-            this.rotation = 90;
-        }
+        // Let the bird fall completely out of the screen (no stopping at ground)
+        // Bird will fall below canvas height
+    }
+    hasFallenOut(){
+        return this.y > this.canvas.height + 50;
     }
     hasHitGround(groundY){
         return this.y + this.height >= groundY -1;

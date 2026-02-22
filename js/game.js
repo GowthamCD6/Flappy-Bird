@@ -45,6 +45,19 @@ class Game {
 
     this.gameOverTimeoutId = null;
 
+    // Player coins (currency)
+    this.playerCoins = this.loadPlayerCoins();
+    
+    // Owned items from shop (quantities)
+    this.ownedItems = this.loadOwnedItems();
+    
+    // Shop prices (coins to buy one use)
+    this.shopPrices = {
+      shield: 20,
+      power: 15,
+      antibomb: 10
+    };
+
     // Screen shake effect
     this.screenShake = {
       intensity: 0,
@@ -58,6 +71,23 @@ class Game {
     this.bindEvents();
 
     coinSystem.init("coinDisplay");
+
+    // Sprite number data for canvas drawing
+    this.numberSprites = [
+      { x: 288, y: 100, w: 7, h: 10 },  // 0
+      { x: 291, y: 118, w: 5, h: 10 },  // 1
+      { x: 289, y: 134, w: 7, h: 10 },  // 2
+      { x: 289, y: 150, w: 7, h: 10 },  // 3
+      { x: 287, y: 173, w: 7, h: 10 },  // 4
+      { x: 287, y: 185, w: 7, h: 10 },  // 5
+      { x: 165, y: 245, w: 7, h: 10 },  // 6
+      { x: 175, y: 245, w: 7, h: 10 },  // 7
+      { x: 185, y: 245, w: 7, h: 10 },  // 8
+      { x: 195, y: 245, w: 7, h: 10 }   // 9
+    ];
+
+    // In-game score element
+    this.inGameScoreElement = document.getElementById("inGameScore");
     coinSystem.reset();
 
     shieldSystem.init(this.bird, this.canvas);
@@ -71,7 +101,7 @@ class Game {
 
     portalSystem.init(this.bird, this.canvas);
 
-    spaceWorldSystem.init(this.bird, this.canvas);
+    spaceWorldSystem.init(this.bird, this.canvas, (amount) => this.addCoins(amount));
 
     const powersContainer = document.getElementById("powersContainer");
     if (powersContainer) powersContainer.classList.add("hidden");
@@ -80,6 +110,10 @@ class Game {
 
     this.setupShieldButton();
     this.setupGravityButton();
+    
+    // Update coins display on start
+    this.updateStartScreenCoins();
+    
     this.gameLoop(0);
   }
 
@@ -188,6 +222,9 @@ class Game {
       }, { passive: false });
     }
 
+    // Setup shop item click handlers
+    this.setupShopItems();
+
     const powerBtn = document.getElementById("powerBtn");
     if (powerBtn) {
       powerBtn.addEventListener("click", (e) => {
@@ -240,6 +277,11 @@ class Game {
       }
       this.firstInputReceived = true;
       
+      // Break autopilot on user input
+      if (portalSystem.isAutopilotActive && portalSystem.isAutopilotActive()) {
+        portalSystem.breakAutopilot();
+      }
+      
       // In space world, use floating controls instead of flap
       if (!spaceWorldSystem.isActive) {
         this.bird.flap();
@@ -251,11 +293,90 @@ class Game {
     this.showSettings = !this.showSettings;
   }
 
+  // Load player coins from localStorage
+  loadPlayerCoins() {
+    const saved = localStorage.getItem('flappybird_coins');
+    return saved ? parseInt(saved) : 0;
+  }
+
+  // Save player coins to localStorage (debounced to avoid performance issues)
+  savePlayerCoins() {
+    // Clear any pending save
+    if (this.coinSaveTimeout) {
+      clearTimeout(this.coinSaveTimeout);
+    }
+    // Debounce the save - only save after 500ms of no changes
+    this.coinSaveTimeout = setTimeout(() => {
+      localStorage.setItem('flappybird_coins', this.playerCoins.toString());
+    }, 500);
+  }
+  
+  // Force save coins immediately (call on game over, etc.)
+  forceSaveCoins() {
+    if (this.coinSaveTimeout) {
+      clearTimeout(this.coinSaveTimeout);
+    }
+    localStorage.setItem('flappybird_coins', this.playerCoins.toString());
+  }
+
+  // Load owned items from localStorage (quantities)
+  loadOwnedItems() {
+    const saved = localStorage.getItem('flappybird_owned');
+    if (saved) {
+      const parsed = JSON.parse(saved);
+      // Migrate old boolean format to quantity format
+      for (const key in parsed) {
+        if (parsed[key] === true) parsed[key] = 1;
+      }
+      return parsed;
+    }
+    return { shield: 0, power: 0, antibomb: 0 };
+  }
+
+  // Save owned items to localStorage
+  saveOwnedItems() {
+    localStorage.setItem('flappybird_owned', JSON.stringify(this.ownedItems));
+  }
+
+  // Add coins (called when scoring)
+  addCoins(amount) {
+    this.playerCoins += amount;
+    this.savePlayerCoins(); // Debounced save
+    this.updateInGameCoins();
+  }
+
   openShop() {
     const shopScreen = document.getElementById("shopScreen");
     if (shopScreen) {
       shopScreen.classList.remove("hidden");
+      this.updateShopDisplay();
     }
+  }
+
+  updateShopDisplay() {
+    // Update coins display
+    const coinsAmount = document.getElementById("shopCoinsAmount");
+    if (coinsAmount) {
+      coinsAmount.textContent = this.playerCoins;
+    }
+
+    // Update owned items display with quantities on the card
+    const shopItems = document.querySelectorAll('.shop-item[data-item]');
+    shopItems.forEach(item => {
+      const itemName = item.getAttribute('data-item');
+      const qty = this.ownedItems[itemName] || 0;
+      // Place qty badge on the card (parent .shop-item-card)
+      const card = item.closest('.shop-item-card');
+      if (!card) return;
+      let badge = card.querySelector('.qty-badge');
+      if (!badge) {
+        badge = document.createElement('span');
+        badge.className = 'qty-badge';
+        card.appendChild(badge);
+      }
+      badge.textContent = qty;
+      badge.style.display = qty > 0 ? '' : 'none';
+    });
   }
 
   closeShop() {
@@ -263,14 +384,78 @@ class Game {
     if (shopScreen) {
       shopScreen.classList.add("hidden");
     }
+    // Hide any message
+    const message = document.getElementById("shopMessage");
+    if (message) message.classList.add("hidden");
+  }
+
+  purchaseItem(itemName, price) {
+    const message = document.getElementById("shopMessage");
+
+    // Check if enough coins
+    if (this.playerCoins < price) {
+      this.showShopMessage("Not enough coins!", "error");
+      return false;
+    }
+
+    // Purchase successful - increment quantity
+    this.playerCoins -= price;
+    if (!this.ownedItems[itemName]) this.ownedItems[itemName] = 0;
+    this.ownedItems[itemName]++;
+    this.savePlayerCoins();
+    this.saveOwnedItems();
+    this.updateShopDisplay();
+    this.showShopMessage(`Purchased! (x${this.ownedItems[itemName]})`, "success");
+    return true;
+  }
+
+  showShopMessage(text, type) {
+    const message = document.getElementById("shopMessage");
+    if (message) {
+      message.textContent = text;
+      message.className = "shop-message " + type;
+      // Reset animation
+      message.style.animation = 'none';
+      message.offsetHeight; // Trigger reflow
+      message.style.animation = null;
+      
+      // Hide after animation
+      setTimeout(() => {
+        message.classList.add("hidden");
+      }, 2000);
+    }
+  }
+
+  setupShopItems() {
+    const shopCards = document.querySelectorAll('.shop-item-card');
+    shopCards.forEach(card => {
+      card.addEventListener('click', (e) => {
+        const item = card.querySelector('.shop-item[data-item]');
+        if (!item) return;
+        const itemName = item.getAttribute('data-item');
+        const price = parseInt(item.getAttribute('data-price'));
+        this.purchaseItem(itemName, price);
+      });
+    });
   }
 
   activatePower(currentTime) {
     if (this.gameState !== "playing") return;
     if (powerUpSystem.isActive) return;
 
+    // Check if player has power quantity
+    const qty = this.ownedItems.power || 0;
+    if (qty <= 0) {
+      console.log("No Power available! Buy from shop.");
+      return;
+    }
+
     const activated = powerUpSystem.activate(currentTime);
     if (activated) {
+      // Decrement quantity
+      this.ownedItems.power--;
+      this.saveOwnedItems();
+      this.updatePowerQuantities();
       const powerBtn = document.getElementById("powerBtn");
       if (powerBtn) powerBtn.classList.add("power-used");
     }
@@ -311,9 +496,20 @@ class Game {
     if (this.gameState !== "playing") return;
     if (!shieldSystem.isReady()) return;
 
+    // Check if player has shield quantity
+    const qty = this.ownedItems.shield || 0;
+    if (qty <= 0) {
+      console.log("No Shield available! Buy from shop.");
+      return;
+    }
+
     const activated = shieldSystem.activate();
     if (activated) {
-      console.log("Shield instantly activated! Protection for 3 pipe hits.");
+      // Decrement quantity
+      this.ownedItems.shield--;
+      this.saveOwnedItems();
+      this.updatePowerQuantities();
+      console.log("Shield activated! Protection for 3 pipe hits.");
       this.updateShieldButton();
     }
   }
@@ -324,8 +520,19 @@ class Game {
     const gravityBtn = document.getElementById("gravityBtn");
     if (gravityBtn && gravityBtn.classList.contains("gravity-used")) return;
 
+    // Check if player has anti-rocket quantity
+    const qty = this.ownedItems.antibomb || 0;
+    if (qty <= 0) {
+      console.log("No Anti-Rocket available! Buy from shop.");
+      return;
+    }
+
     const activated = gravitySystem.activate();
     if (activated && gravityBtn) {
+      // Decrement quantity
+      this.ownedItems.antibomb--;
+      this.saveOwnedItems();
+      this.updatePowerQuantities();
       gravityBtn.classList.add("gravity-used");
       console.log("Gravity power activated! Rockets falling down.");
     }
@@ -353,7 +560,7 @@ class Game {
     if (shieldSystem.isReady()) {
       shieldBtn.classList.remove("shield-used", "shield-cooldown");
       shieldBtn.classList.add("shield-ready");
-      shieldBtn.title = "Activate Shield - Instant protection from 3 pipe hits";
+      shieldBtn.title = "Activate Shield";
     } else if (shieldSystem.isProtecting()) {
       shieldBtn.classList.remove("shield-ready", "shield-cooldown");
       shieldBtn.classList.add("shield-used");
@@ -366,6 +573,17 @@ class Game {
       );
       shieldBtn.title = `Shield Cooldown - ${cooldownPercent}% ready`;
     }
+  }
+
+  // Update power quantity labels during gameplay
+  updatePowerQuantities() {
+    const powerQty = document.getElementById("powerQty");
+    const shieldQty = document.getElementById("shieldQty");
+    const gravityQty = document.getElementById("gravityQty");
+    
+    if (powerQty) powerQty.textContent = this.ownedItems.power || 0;
+    if (shieldQty) shieldQty.textContent = this.ownedItems.shield || 0;
+    if (gravityQty) gravityQty.textContent = this.ownedItems.antibomb || 0;
   }
 
   startGame() {
@@ -394,6 +612,22 @@ class Game {
 
     const powersContainer = document.getElementById("powersContainer");
     if (powersContainer) powersContainer.classList.remove("hidden");
+    
+    // Show current power quantities
+    this.updatePowerQuantities();
+
+    // Show in-game score
+    if (this.inGameScoreElement) {
+      this.inGameScoreElement.classList.remove("hidden");
+      this.updateInGameScore();
+    }
+
+    // Show in-game coins display
+    const inGameCoins = document.getElementById("inGameCoins");
+    if (inGameCoins) {
+      inGameCoins.classList.remove("hidden");
+      this.updateInGameCoins();
+    }
 
     const powerBtn = document.getElementById("powerBtn");
     if (powerBtn) powerBtn.classList.remove("power-used");
@@ -406,6 +640,14 @@ class Game {
     this.syncToggleButton();
 
     this.bird.flap();
+  }
+
+  // Update in-game coins display
+  updateInGameCoins() {
+    const coinsElement = document.getElementById("inGameCoinsAmount");
+    if (coinsElement) {
+      coinsElement.textContent = this.playerCoins;
+    }
   }
 
   restart() {
@@ -499,18 +741,64 @@ class Game {
   showGameOverScreen() {
     this.gameState = "gameOver";
 
+    // Force save coins when game ends
+    this.forceSaveCoins();
+
+    const newBestSprite = document.getElementById("newBestSprite");
+    
     if (this.score > this.highScore) {
       this.highScore = this.score;
       saveHighScore(this.score);
+      // Show NEW sprite for new best score
+      if (newBestSprite) newBestSprite.classList.remove("hidden");
+    } else {
+      // Hide NEW sprite if not a new best
+      if (newBestSprite) newBestSprite.classList.add("hidden");
     }
 
-    document.getElementById("finalScore").textContent = this.score;
-    document.getElementById("bestScore").textContent = this.highScore;
+    // Update score displays with sprite numbers
+    this.updateSpriteScore("finalScore", this.score);
+    this.updateSpriteScore("bestScore", this.highScore);
+
+    // Hide in-game score
+    if (this.inGameScoreElement) {
+      this.inGameScoreElement.classList.add("hidden");
+    }
+
+    // Hide in-game coins display
+    const inGameCoins = document.getElementById("inGameCoins");
+    if (inGameCoins) {
+      inGameCoins.classList.add("hidden");
+    }
 
     coinSystem.updateCoin(this.score);
     coinSystem.show();
 
     document.getElementById("gameOverScreen").classList.remove("hidden");
+  }
+
+  // Generate HTML for sprite number display
+  generateSpriteNumberHTML(num) {
+    const digits = String(num).split('');
+    return digits.map(d => {
+      const digit = parseInt(d);
+      return `<span class="num-digit num-${digit}"></span>`;
+    }).join('');
+  }
+
+  // Update an element with sprite number display
+  updateSpriteScore(elementId, score) {
+    const element = document.getElementById(elementId);
+    if (element) {
+      element.innerHTML = this.generateSpriteNumberHTML(score);
+    }
+  }
+
+  // Update in-game score display
+  updateInGameScore() {
+    if (this.inGameScoreElement) {
+      this.inGameScoreElement.innerHTML = this.generateSpriteNumberHTML(this.score);
+    }
   }
 
   clearGameOverTimeout() {
@@ -566,6 +854,17 @@ class Game {
 
     this.gameState = "start";
 
+    // Hide in-game score
+    if (this.inGameScoreElement) {
+      this.inGameScoreElement.classList.add("hidden");
+    }
+
+    // Hide in-game coins display
+    const inGameCoins = document.getElementById("inGameCoins");
+    if (inGameCoins) {
+      inGameCoins.classList.add("hidden");
+    }
+
     const gameControls = document.getElementById("gameControls");
     if (gameControls) gameControls.classList.add("hidden");
 
@@ -574,11 +873,21 @@ class Game {
     const startScreen = document.getElementById("startScreen");
     if (startScreen) startScreen.classList.remove("hidden");
 
+    // Update coins display on start screen
+    this.updateStartScreenCoins();
+
     const getReadyScreen = document.getElementById("getReadyScreen");
     if (getReadyScreen) getReadyScreen.classList.add("hidden");
 
     const gameOverScreen = document.getElementById("gameOverScreen");
     if (gameOverScreen) gameOverScreen.classList.add("hidden");
+  }
+
+  updateStartScreenCoins() {
+    const coinsElement = document.getElementById("startCoinsAmount");
+    if (coinsElement) {
+      coinsElement.textContent = this.playerCoins;
+    }
   }
 
   update(currentTime) {
@@ -600,6 +909,9 @@ class Game {
           // Space world floating update - no gravity flapping
           this.bird.updateAnimation(currentTime);
           spaceWorldSystem.update(currentTime);
+        } else if (portalSystem.isAutopilotActive && portalSystem.isAutopilotActive()) {
+          // Autopilot mode - only update animation, position handled by autopilot
+          this.bird.updateAnimation(currentTime);
         } else {
           this.bird.update(currentTime);
           
@@ -652,6 +964,10 @@ class Game {
 
           if (this.pipeManager.checkScore(this.bird)) {
             this.score += portalSystem.getScoreMultiplier();
+            this.updateInGameScore();
+            // Earn coins when scoring (5 coins per point, multiplied in portal)
+            // Earn 3 coins per score (multiplied in portal)
+            this.addCoins(3 * portalSystem.getScoreMultiplier());
           }
         }
 
@@ -672,6 +988,11 @@ class Game {
           this.pipeManager.reset(); // Clear pipes when portal appears
         }
         portalSystem.update();
+
+        // Update autopilot if active (during invincibility period)
+        if (portalSystem.updateAutopilot) {
+          portalSystem.updateAutopilot();
+        }
 
         // Handle portal screen shake
         if (portalSystem.needsScreenShake) {
@@ -731,8 +1052,8 @@ class Game {
       // Update explosions while dying
       rocketSystem.updateExplosions();
       
-      // Check if bird has hit the ground
-      if (this.bird.hasHitGround(this.groundY)) {
+      // Check if bird has fallen out of screen
+      if (this.bird.hasFallenOut()) {
         this.showGameOverScreen();
       }
     }
@@ -903,15 +1224,7 @@ class Game {
       spaceWorldSystem.draw(ctx);
     }
 
-    if (this.gameState === "playing") {
-      ctx.fillStyle = "white";
-      ctx.strokeStyle = "black";
-      ctx.lineWidth = 3;
-      ctx.font = "bold 48px Arial";
-      ctx.textAlign = "center";
-      ctx.strokeText(this.score, this.canvas.width / 2, 80);
-      ctx.fillText(this.score, this.canvas.width / 2, 80);
-    }
+    // Score is now displayed using HTML sprite elements
 
     if (this.isPaused && this.gameState === "playing") {
       ctx.fillStyle = "rgba(0, 0, 0, 0.6)";
