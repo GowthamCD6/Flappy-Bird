@@ -90,6 +90,9 @@ class Game {
     this.groundY = this.canvas.height - 80;
     this.groundX = 0;
 
+    // Apply mobile sizing now that bird exists
+    this.resizeCanvas();
+
     this.bindEvents();
 
     coinSystem.init("coinDisplay");
@@ -172,6 +175,18 @@ class Game {
     window.addEventListener("orientationchange", () => {
       setTimeout(() => this.resizeCanvas(), 100);
     });
+
+    // Handle mobile visual viewport changes (address bar hide/show)
+    if (window.visualViewport) {
+      window.visualViewport.addEventListener("resize", () => this.resizeCanvas());
+    }
+
+    // Prevent default touch behaviors (scroll, zoom) on game area
+    document.body.addEventListener("touchmove", (e) => {
+      if (e.target.closest('.game-container')) {
+        e.preventDefault();
+      }
+    }, { passive: false });
 
     document.addEventListener(
       "pointerdown",
@@ -504,22 +519,85 @@ class Game {
     const container = document.querySelector('.game-container');
     const vh = window.innerHeight;
     const vw = window.innerWidth;
-    
-    const gameAspect = 400 / 600;
-    let displayHeight = vh; 
-    let displayWidth = displayHeight * gameAspect;
-    
-    if (displayWidth > vw) {
+
+    const BASE_W = 400;
+    const BASE_H = 600;
+    const gameAspect = BASE_W / BASE_H;
+    let displayWidth, displayHeight;
+
+    if (vw <= 480) {
+      // Mobile: fill viewport entirely
       displayWidth = vw;
-      displayHeight = displayWidth / gameAspect;
+      displayHeight = vh;
+
+      // Adapt internal canvas resolution to match the display aspect ratio
+      // Keep width at 400, adjust height proportionally so nothing is stretched
+      const displayAspect = displayWidth / displayHeight;
+      const newInternalH = Math.round(BASE_W / displayAspect);
+
+      if (this.canvas.width !== BASE_W || this.canvas.height !== newInternalH) {
+        this.canvas.width = BASE_W;
+        this.canvas.height = newInternalH;
+
+        // Recalculate ground position
+        this.groundY = this.canvas.height - 80;
+
+        // Update gravity ground
+        if (typeof gravitySystem !== 'undefined' && gravitySystem && gravitySystem.setGroundY) {
+          gravitySystem.setGroundY(this.groundY);
+        }
+      }
+
+      // Always update bird position on mobile (even if canvas size didn't change)
+      if (this.bird) {
+        const startBirdYFactor = 0.35;
+        const readyBirdYFactor = 0.35;
+        const birdYFactor = this.gameState === 'ready' ? readyBirdYFactor : startBirdYFactor;
+
+        this.bird.baseY = this.canvas.height * birdYFactor;
+        if (this.gameState === 'start' || this.gameState === 'ready') {
+          this.bird.y = this.canvas.height * birdYFactor;
+        }
+      }
+
+      // On mobile, let CSS handle container/canvas display sizing
+      // Clear any inline styles that might conflict with CSS !important
+      if (container) {
+        container.style.width = '';
+        container.style.height = '';
+      }
+      this.canvas.style.width = '';
+      this.canvas.style.height = '';
+
+    } else {
+      // Desktop: maintain 2:3 aspect ratio, centered
+      displayHeight = vh;
+      displayWidth = displayHeight * gameAspect;
+      if (displayWidth > vw) {
+        displayWidth = vw;
+        displayHeight = displayWidth / gameAspect;
+      }
+
+      // Reset internal resolution if we came back from mobile
+      if (this.canvas.width !== BASE_W || this.canvas.height !== BASE_H) {
+        this.canvas.width = BASE_W;
+        this.canvas.height = BASE_H;
+        this.groundY = this.canvas.height - 80;
+        if (this.bird) {
+          this.bird.baseY = this.canvas.height / 3.2;
+        }
+        if (typeof gravitySystem !== 'undefined' && gravitySystem && gravitySystem.setGroundY) {
+          gravitySystem.setGroundY(this.groundY);
+        }
+      }
+
+      if (container) {
+        container.style.width = displayWidth + 'px';
+        container.style.height = displayHeight + 'px';
+      }
+      this.canvas.style.width = displayWidth + 'px';
+      this.canvas.style.height = displayHeight + 'px';
     }
-    
-    if (container) {
-      container.style.width = displayWidth + 'px';
-      container.style.height = displayHeight + 'px';
-    }
-    this.canvas.style.width = displayWidth + 'px';
-    this.canvas.style.height = displayHeight + 'px';
 
     this.ctx.imageSmoothingEnabled = false;
     this.ctx.webkitImageSmoothingEnabled = false;
@@ -627,6 +705,9 @@ class Game {
     this.gameState = "ready";
     this.firstInputReceived = false;
     this.playSound('swoosh');
+
+    // Ensure mobile ready-screen layout (center bird) applies immediately
+    this.resizeCanvas();
 
     const startScreen = document.getElementById("startScreen");
     if (startScreen) startScreen.classList.add("hidden");
@@ -904,6 +985,9 @@ class Game {
     if (gravityBtn) gravityBtn.classList.remove("gravity-used");
 
     this.gameState = "start";
+
+    // Ensure mobile start-screen layout applies immediately
+    this.resizeCanvas();
 
     // Hide in-game score
     if (this.inGameScoreElement) {

@@ -398,4 +398,4 @@ This project is for educational and personal use.
 
 ---
 
-*Built with ❤️ using vanilla HTML5, CSS, and JavaScript.*
+*Built with ❤️ using vanilla HTML5, CSS, and JavaScript.* 

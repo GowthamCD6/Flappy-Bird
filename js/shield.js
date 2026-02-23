@@ -464,4 +464,4 @@ class ShieldSystem {
     }
 }
 
-const shieldSystem = new ShieldSystem();          dhghfgfbbghg
+const shieldSystem = new ShieldSystem();
