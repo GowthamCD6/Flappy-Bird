@@ -62,7 +62,7 @@ class SpaceWorldSystem {
     setupControls() {
         document.addEventListener('keydown', (e) => {
             if (!this.isActive) return;
-            
+
             if (e.code === 'ArrowUp' || e.code === 'KeyW' || e.code === 'Space') {
                 this.moveUp = true;
                 e.preventDefault();
@@ -72,7 +72,7 @@ class SpaceWorldSystem {
                 e.preventDefault();
             }
         });
-        
+
         document.addEventListener('keyup', (e) => {
             if (e.code === 'ArrowUp' || e.code === 'KeyW' || e.code === 'Space') {
                 this.moveUp = false;
@@ -81,80 +81,76 @@ class SpaceWorldSystem {
                 this.moveDown = false;
             }
         });
-        
+
+        const updateFromClientY = (clientY) => {
+            if (!this.canvas) return;
+            const rect = this.canvas.getBoundingClientRect();
+            const y = clientY - rect.top;
+            this.moveUp = y < rect.height / 2;
+            this.moveDown = y >= rect.height / 2;
+        };
+
+        const clearMove = () => {
+            this.moveUp = false;
+            this.moveDown = false;
+        };
+
         this.canvas?.addEventListener('touchstart', (e) => {
             if (!this.isActive) return;
             e.preventDefault();
-
-            const touch = e.touches[0];
-            const rect = this.canvas.getBoundingClientRect();
-            const touchY = touch.clientY - rect.top;
-
-            this.moveUp = touchY < rect.height / 2;
-            this.moveDown = touchY >= rect.height / 2;
+            updateFromClientY(e.touches[0].clientY);
         }, { passive: false });
-        
+
+        this.canvas?.addEventListener('touchmove', (e) => {
+            if (!this.isActive) return;
+            e.preventDefault();
+            updateFromClientY(e.touches[0].clientY);
+        }, { passive: false });
+
         this.canvas?.addEventListener('touchend', (e) => {
             if (!this.isActive) return;
             e.preventDefault();
-            this.moveUp = false;
-            this.moveDown = false;
+            clearMove();
         }, { passive: false });
 
         this.canvas?.addEventListener('touchcancel', (e) => {
             if (!this.isActive) return;
             e.preventDefault();
-            this.moveUp = false;
-            this.moveDown = false;
+            clearMove();
         }, { passive: false });
-        
-        this.canvas?.addEventListener('touchmove', (e) => {
+
+        this.canvas?.addEventListener('pointerdown', (e) => {
             if (!this.isActive) return;
+            if (e.pointerType === 'mouse' && typeof e.button === 'number' && e.button !== 0) return;
             e.preventDefault();
 
-            const touch = e.touches[0];
-            const rect = this.canvas.getBoundingClientRect();
-            const touchY = touch.clientY - rect.top;
-        this.moveUp = touchY < rect.height / 2;
-        this.moveDown = touchY >= rect.height / 2;
-        },{passive: false});
-        this.canvas?.addEventListner('pointerdown', (e) => {
-            if(!this.isActive) return;
-            if(e.pointerType === 'mouse' && typeof e.button === 'number' & e.button !== 0)return;
-            e.preventDefault ();
             this.activePointerId = e.pointerId;
-            try{
+            try {
                 this.canvas.setPointerCapture(e.pointerId);
-            } catch(_) {}
+            } catch (_) {}
 
-            const rect = this.canvas.getBoundingCLientRect();
-            const pointerY = e.clientY - rect.top;
-            this.moveUp = pointerY < rect.height / 2;
-            this.moveDown = pointerY >= rect.height / 2;
-        } , {passive:false});
+            updateFromClientY(e.clientY);
+        }, { passive: false });
+
         this.canvas?.addEventListener('pointermove', (e) => {
             if (!this.isActive) return;
-            if(this.activePointerId == null || e.pointerId !== this.activePointerId) return;
-
+            if (this.activePointerId == null || e.pointerId !== this.activePointerId) return;
             e.preventDefault();
-            const rect = this.canvas.getBoundingClientRect();
-            const pointerY = e.clientY - rect.top;
-            this.moveUp = pointerY < rect.height / 2;
-            this.moveDown = pointerY >= rect.height / 2;
-    },{passive:false});
+            updateFromClientY(e.clientY);
+        }, { passive: false });
 
+        const endPointer = (e) => {
+            if (!this.isActive) return;
+            if (this.activePointerId == null || e.pointerId !== this.activePointerId) return;
+            e.preventDefault();
+            this.activePointerId = null;
+            clearMove();
+        };
 
-    const endPointer = (e) => {
-        if(!this.isActive) return;
-        if(this.activePointerId == null || e.pointerId !== this.activePointerId) return;
-        e.preventDefault();
-        this.activePointerId = null;
-        this.moveUP = false;
-        this.moveDown = false;
-    };
-    this.canvas?.addEventListener('pointerUp' , endPointer,{passive:false});
-    this.canvas?.addEventListener('pointercancel',endPointer,{passive:false});
-        }
+        this.canvas?.addEventListener('pointerup', endPointer, { passive: false });
+        this.canvas?.addEventListener('pointercancel', endPointer, { passive: false });
+    }
+
     activate() {
         this.isActive = true;
         this.coins = [];

@@ -181,38 +181,45 @@ class Game {
       this.handleInput();
     }, { passive: false });
 
-     const container = document.querySelector('.game-container');
-     if(container) {
+    const container = document.querySelector('.game-container');
+    if (container) {
+      const shouldIgnoreTarget = (target) => {
+        if (!(target instanceof Element)) return false;
+
+        const shopScreen = document.getElementById('shopScreen');
+        if (shopScreen && !shopScreen.classList.contains('hidden')) return true;
+
+        return !!target.closest(
+          '#startBtn, #shopBtn, #restartBtn, #closeShopBtn, #toggleBtn, ' +
+            '#powerBtn, #shieldBtn, #gravityBtn, ' +
+            'a.features-link, .shop-item-card, .shop-item'
+        );
+      };
+
       container.addEventListener(
         'pointerdown',
         (e) => {
-          const target = e.target;
-
-          if(e.pointerTyoe === 'mouse' && typeof e.button === 'number' && e.button !==0){
+          if (e.pointerType === 'mouse' && typeof e.button === 'number' && e.button !== 0) {
             return;
           }
 
-          if(!(target instanceof Element)) {
-            e.preventDefault();
-            this.handleInput();
-            return;
-          }
-     const shopScreen = document.getElementById('shopScreen');
-     if(shopScreen && !shopScreen.classList.contains('hidden')){
-      return;
-     }
-     const isUiElement = !!target.closest(
-      '#startBtn, #shopBtn, #restartBtn, #closesShopBtn, #toggleBtn, '+
-      '#powerBt, #shieldBtn, #gravityBtn, '+
-      'a.features-link, .shop-item-card, .shop-item'
-     );
-     if(isUiElement) return;
-     e.preventDefault();
-     this.handleInput();
+          if (shouldIgnoreTarget(e.target)) return;
+          e.preventDefault();
+          this.handleInput();
         },
-        {capture: true,passive:false},
+        { capture: true, passive: false },
       );
-     }
+
+      container.addEventListener(
+        'touchstart',
+        (e) => {
+          if (shouldIgnoreTarget(e.target)) return;
+          e.preventDefault();
+          this.handleInput();
+        },
+        { capture: true, passive: false },
+      );
+    }
   
     window.addEventListener("resize", () => this.resizeCanvas());
     window.addEventListener("orientationchange", () => {
