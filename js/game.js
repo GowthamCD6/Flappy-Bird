@@ -133,6 +133,9 @@ class Game {
 
     this.lastTime = 0;
 
+    this.spaceKeyHeld = false;
+    this.lastInputTime = 0;
+
     this.setupShieldButton();
     this.setupGravityButton();
     
@@ -144,7 +147,9 @@ class Game {
 
   bindEvents() {
     document.addEventListener("keydown", (e) => {
-      if (e.code === "Space") {
+      if (e.code === "Space" || e.code === "ArrowUp") {
+        if (e.repeat || this.spaceKeyHeld) return;
+        this.spaceKeyHeld = true;
         e.preventDefault();
         this.handleInput();
       } else if (e.code === "KeyP" || e.code === "Escape") {
@@ -162,6 +167,12 @@ class Game {
       }
     });
 
+    document.addEventListener("keyup", (e) => {
+      if (e.code === "Space" || e.code === "ArrowUp") {
+        this.spaceKeyHeld = false;
+      }
+    });
+
     this.canvas.addEventListener("click", () => this.handleInput());
 
     
@@ -169,6 +180,39 @@ class Game {
       e.preventDefault();
       this.handleInput();
     }, { passive: false });
+
+     const container = document.querySelector('.game-container');
+     if(container) {
+      container.addEventListener(
+        'pointerdown',
+        (e) => {
+          const target = e.target;
+
+          if(e.pointerTyoe === 'mouse' && typeof e.button === 'number' && e.button !==0){
+            return;
+          }
+
+          if(!(target instanceof Element)) {
+            e.preventDefault();
+            this.handleInput();
+            return;
+          }
+     const shopScreen = document.getElementById('shopScreen');
+     if(shopScreen && !shopScreen.classList.contains('hidden')){
+      return;
+     }
+     const isUiElement = !!target.closest(
+      '#startBtn, #shopBtn, #restartBtn, #closesShopBtn, #toggleBtn, '+
+      '#powerBt, #shieldBtn, #gravityBtn, '+
+      'a.features-link, .shop-item-card, .shop-item'
+     );
+     if(isUiElement) return;
+     e.preventDefault();
+     this.handleInput();
+        },
+        {capture: true,passive:false},
+      );
+     }
   
     window.addEventListener("resize", () => this.resizeCanvas());
     window.addEventListener("orientationchange", () => {
@@ -289,6 +333,10 @@ class Game {
   }
 
   handleInput() {
+    const now = performance.now();
+    if (now - this.lastInputTime < 80) return;
+    this.lastInputTime = now;
+
     if (this.showSettings) {
       this.showSettings = false;
       return;

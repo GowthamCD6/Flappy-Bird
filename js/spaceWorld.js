@@ -26,6 +26,8 @@ class SpaceWorldSystem {
         
         this.moveUp = false;
         this.moveDown = false;
+
+        this.activePointerId = null;
         
         this.coinLoaded = false;
         this.coinSprite = new Image();
@@ -82,33 +84,77 @@ class SpaceWorldSystem {
         
         this.canvas?.addEventListener('touchstart', (e) => {
             if (!this.isActive) return;
+            e.preventDefault();
+
             const touch = e.touches[0];
             const rect = this.canvas.getBoundingClientRect();
             const touchY = touch.clientY - rect.top;
-            
-            if (touchY < this.canvas.height / 2) {
-                this.moveUp = true;
-            } else {
-                this.moveDown = true;
-            }
-        });
+
+            this.moveUp = touchY < rect.height / 2;
+            this.moveDown = touchY >= rect.height / 2;
+        }, { passive: false });
         
-        this.canvas?.addEventListener('touchend', () => {
+        this.canvas?.addEventListener('touchend', (e) => {
+            if (!this.isActive) return;
+            e.preventDefault();
             this.moveUp = false;
             this.moveDown = false;
-        });
+        }, { passive: false });
+
+        this.canvas?.addEventListener('touchcancel', (e) => {
+            if (!this.isActive) return;
+            e.preventDefault();
+            this.moveUp = false;
+            this.moveDown = false;
+        }, { passive: false });
         
         this.canvas?.addEventListener('touchmove', (e) => {
             if (!this.isActive) return;
+            e.preventDefault();
+
             const touch = e.touches[0];
             const rect = this.canvas.getBoundingClientRect();
             const touchY = touch.clientY - rect.top;
-            
-            this.moveUp = touchY < this.canvas.height / 2;
-            this.moveDown = touchY >= this.canvas.height / 2;
-        });
-    }
-    
+        this.moveUp = touchY < rect.height / 2;
+        this.moveDown = touchY >= rect.height / 2;
+        },{passive: false});
+        this.canvas?.addEventListner('pointerdown', (e) => {
+            if(!this.isActive) return;
+            if(e.pointerType === 'mouse' && typeof e.button === 'number' & e.button !== 0)return;
+            e.preventDefault ();
+            this.activePointerId = e.pointerId;
+            try{
+                this.canvas.setPointerCapture(e.pointerId);
+            } catch(_) {}
+
+            const rect = this.canvas.getBoundingCLientRect();
+            const pointerY = e.clientY - rect.top;
+            this.moveUp = pointerY < rect.height / 2;
+            this.moveDown = pointerY >= rect.height / 2;
+        } , {passive:false});
+        this.canvas?.addEventListener('pointermove', (e) => {
+            if (!this.isActive) return;
+            if(this.activePointerId == null || e.pointerId !== this.activePointerId) return;
+
+            e.preventDefault();
+            const rect = this.canvas.getBoundingClientRect();
+            const pointerY = e.clientY - rect.top;
+            this.moveUp = pointerY < rect.height / 2;
+            this.moveDown = pointerY >= rect.height / 2;
+    },{passive:false});
+
+
+    const endPointer = (e) => {
+        if(!this.isActive) return;
+        if(this.activePointerId == null || e.pointerId !== this.activePointerId) return;
+        e.preventDefault();
+        this.activePointerId = null;
+        this.moveUP = false;
+        this.moveDown = false;
+    };
+    this.canvas?.addEventListener('pointerUp' , endPointer,{passive:false});
+    this.canvas?.addEventListener('pointercancel',endPointer,{passive:false});
+        }
     activate() {
         this.isActive = true;
         this.coins = [];

@@ -24,6 +24,12 @@ body {
     -webkit-user-select: none;
 }
 
+.game-container,
+#gameCanvas {
+    touch-action: none;
+    -webkit-touch-callout: none;
+}
+
 .game-container {
     position: relative;
     width: 400px;
