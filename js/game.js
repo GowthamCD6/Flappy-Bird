@@ -506,6 +506,8 @@ class Game {
     this.savePlayerCoins();
     this.saveOwnedItems();
     this.updateShopDisplay();
+    this.updatePowerQuantities();
+    this.updateShieldButton();
     this.showShopMessage(`Purchased! (x${this.ownedItems[itemName]})`, "success");
     return true;
   }
@@ -727,6 +729,17 @@ this.canvas.style.height = '';
     const shieldBtn = document.getElementById("shieldBtn");
     if (!shieldBtn) return;
 
+    const qty = this.ownedItems.shield || 0;
+
+    if (qty <= 0 && !shieldSystem.isProtecting()) {
+      shieldBtn.classList.remove("shield-used", "shield-ready", "shield-cooldown");
+      shieldBtn.classList.add("power-disabled");
+      shieldBtn.title = "No Shield - buy from shop";
+      return;
+    }
+
+    shieldBtn.classList.remove("power-disabled");
+
     if (shieldSystem.isReady()) {
       shieldBtn.classList.remove("shield-used", "shield-cooldown");
       shieldBtn.classList.add("shield-ready");
@@ -749,10 +762,37 @@ this.canvas.style.height = '';
     const powerQty = document.getElementById("powerQty");
     const shieldQty = document.getElementById("shieldQty");
     const gravityQty = document.getElementById("gravityQty");
-    
-    if (powerQty) powerQty.textContent = this.ownedItems.power || 0;
-    if (shieldQty) shieldQty.textContent = this.ownedItems.shield || 0;
-    if (gravityQty) gravityQty.textContent = this.ownedItems.antibomb || 0;
+
+    const powerCount = this.ownedItems.power || 0;
+    const shieldCount = this.ownedItems.shield || 0;
+    const gravityCount = this.ownedItems.antibomb || 0;
+
+    if (powerQty) {
+      powerQty.textContent = powerCount;
+      powerQty.classList.toggle("hidden", powerCount <= 0);
+    }
+    if (shieldQty) {
+      shieldQty.textContent = shieldCount;
+      shieldQty.classList.toggle("hidden", shieldCount <= 0);
+    }
+    if (gravityQty) {
+      gravityQty.textContent = gravityCount;
+      gravityQty.classList.toggle("hidden", gravityCount <= 0);
+    }
+
+    const powerBtn = document.getElementById("powerBtn");
+    if (powerBtn) {
+      powerBtn.classList.toggle("power-disabled", powerCount <= 0);
+      if (powerCount <= 0) powerBtn.title = "No Power - buy from shop";
+      else powerBtn.title = "Power";
+    }
+
+    const gravityBtn = document.getElementById("gravityBtn");
+    if (gravityBtn) {
+      gravityBtn.classList.toggle("power-disabled", gravityCount <= 0);
+      if (gravityCount <= 0) gravityBtn.title = "No Anti-Rocket - buy from shop";
+      else gravityBtn.title = "Anti-Rocket";
+    }
   }
 
   startGame() {

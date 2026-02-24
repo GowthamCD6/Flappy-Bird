@@ -48,6 +48,33 @@ body {
     font-weight: bold;
 }
 
+.features-notes {
+    margin-top: 18px;
+    text-align: left;
+}
+
+.features-subtitle {
+    color: #FFD700;
+    font-size: 18px;
+    margin: 8px 0 10px;
+}
+
+.shortcut-list {
+    margin: 0;
+    padding-left: 18px;
+    color: #FFD700;
+    font-size: 14px;
+    line-height: 1.4;
+}
+
+.shortcut-list li {
+    margin: 6px 0;
+}
+
+.k {
+    font-weight: 700;
+}
+
 .back-button-sprite {
     background: url('../assets/images/flappybirdassets.png') no-repeat -242px -213px;
     width: 40px;
@@ -87,6 +114,15 @@ body {
 
     .feature-item p{
         font-size: 15px;
+    }
+
+    .features-subtitle{
+        font-size: 16px;
+        margin-top: 12px;
+    }
+
+    .shortcut-list{
+        font-size: 13px;
     }
 
     .back-button-sprite{
