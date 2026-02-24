@@ -58,17 +58,15 @@ class ShieldSystem {
     onPipeHit() {
         const now = Date.now();
 
-        // Shield is not active at all - bird should die
         if (!this.isActive && !this.isBreaking) {
             return false;
         }
 
-        // Shield is in breaking animation - still protected briefly
         if (this.isBreaking) {
             return true;
         }
 
-        // Prevent rapid duplicate hits from the same pipe
+        
         if (now - this.lastHitTime < this.hitCooldown) {
             return true;
         }

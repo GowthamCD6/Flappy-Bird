@@ -44,7 +44,6 @@ body {
     -moz-image-rendering: crisp-edges;
 }
 
-/* Pixel-perfect sprite rendering */
 [class*="sprite"],
 .power-btn,
 .shield-btn {
@@ -104,7 +103,6 @@ body {
     -moz-image-rendering: crisp-edges;
 }
 
-/* Start screen coins display */
 .start-coins-display {
     position: absolute;
     top: 20px;
@@ -237,7 +235,6 @@ body {
     top: 33px;
 }
 
-/* NEW best score sprite */
 .new-best-sprite {
     background: url('../assets/images/flappybirdassets.png') no-repeat -146px -245px;
     width: 16px;
@@ -334,7 +331,6 @@ body {
     height: 14px;
 }
 
-/* Number sprites for score display */
 .num-0 {
     background: url('../assets/images/flappybirdassets.png') no-repeat -288px -100px;
     width: 7px;
@@ -425,7 +421,6 @@ body {
     image-rendering: crisp-edges;
 }
 
-/* Sprite score display container */
 .sprite-score {
     display: flex;
     justify-content: flex-end;
@@ -439,7 +434,6 @@ body {
     image-rendering: crisp-edges;
 }
 
-/* In-game score display */
 .in-game-score {
     position: absolute;
     top: 30px;
@@ -581,7 +575,6 @@ body {
     align-items: center;
 }
 
-/* Shop panel - the main card */
 .shop-panel {
     background: linear-gradient(180deg, #2c1e0f 0%, #3d2b14 100%);
     border: 3px solid #8B6914;
@@ -596,7 +589,6 @@ body {
     overflow: visible;
 }
 
-/* Header area */
 .shop-header {
     background: linear-gradient(180deg, #4a3520 0%, #3d2b14 100%);
     border-bottom: 2px solid #8B6914;
@@ -644,7 +636,6 @@ body {
     font-weight: bold;
 }
 
-/* Items row */
 .shop-items-row {
     display: flex;
     justify-content: center;
@@ -652,7 +643,6 @@ body {
     padding: 20px 16px 24px;
 }
 
-/* Individual item card */
 .shop-item-card {
     background: linear-gradient(180deg, #F5EDD6 0%, #E8DFC0 100%);
     border: 2px solid #C4A94D;
@@ -680,7 +670,6 @@ body {
     box-shadow: 0 1px 4px rgba(0,0,0,0.3);
 }
 
-/* Icon wrapper with circle bg */
 .shop-item-icon-wrap {
     width: 50px;
     height: 50px;
@@ -705,7 +694,6 @@ body {
     text-align: center;
 }
 
-/* Buy button / price tag */
 .shop-item-buy {
     display: flex;
     align-items: center;
@@ -737,7 +725,6 @@ body {
     display: inline-block;
 }
 
-/* Quantity badge on shop items */
 .qty-badge {
     position: absolute;
     top: -8px;
@@ -783,7 +770,6 @@ body {
     image-rendering: crisp-edges;
 }
 
-/* Close shop sprite button */
 .close-shop-sprite {
     background: url('../assets/images/flappybirdassets(1).png') no-repeat -391px -133px;
     width: 12px;
@@ -856,7 +842,6 @@ body {
     pointer-events: auto;
 }
 
-/* Unified Powers Container - Top left, vertical column */
 .powers-container {
     position: absolute;
     top: 100px;
@@ -895,7 +880,6 @@ body {
     box-shadow: 0 1px 3px rgba(0,0,0,0.5);
 }
 
-/* In-game coins display */
 .in-game-coins {
     position: absolute;
     top: 10px;
@@ -927,7 +911,6 @@ body {
     font-weight: bold;
 }
 
-/* Unified Powers Container - Top left, vertical column */
 .power-container {
     position: absolute;
     top: 100px;
@@ -1048,7 +1031,6 @@ body {
     opacity: 0.6;
 }
 
-/* Gravity Power Button */
 .gravity-btn-container {
     position: absolute;
     bottom: 80px;
@@ -1097,12 +1079,9 @@ body {
     pointer-events: none;
 }
 
-/* ===== MOBILE RESPONSIVE ===== */
 
-/* ---- Phones and small tablets (portrait) ---- */
 @media screen and (max-width: 480px) {
 
-    /* --- Root / body --- */
     html, body {
         width: 100% !important;
         height: 100% !important;
@@ -1117,7 +1096,6 @@ body {
         justify-content: center;
     }
 
-    /* --- Game container fills viewport --- */
     .game-container {
         position: fixed !important;
         top: 0 !important;
@@ -1140,13 +1118,11 @@ body {
         display: block;
     }
 
-    /* --- Screens / overlays --- */
     .screen {
         width: 100%;
         height: 100%;
     }
 
-    /* ===== START SCREEN: spread content top-to-bottom ===== */
     #startScreen {
         justify-content: flex-start !important;
         padding-top: 5vh;
@@ -1154,14 +1130,12 @@ body {
         gap: 0;
     }
 
-    /* Title — moved toward center */
     .get-ready-sprite {
         transform: scale(2.8);
         margin-bottom: 0;
         margin-top: 11vh;
     }
 
-    /* START button — pushed below the bird's flight zone */
     .start-sprite-button {
         transform: scale(2.8);
         margin-top: 36vh;
@@ -1172,7 +1146,6 @@ body {
         transform: scale(2.5);
     }
 
-    /* SHOP button — right after START */
     .shop-sprite-button {
         background: url('../assets/images/flappybirdassets(1).png') no-repeat -247px -118px;
         width: 40px;
@@ -1186,17 +1159,18 @@ body {
         transform: scale(2.5);
     }
 
-    /* Features link — hidden on mobile start screen */
+
+
     .features-link {
-        display: none !important;
+        display: one !important;
     }
 
-    /* ===== GET-READY SCREEN: move upward (match title placement) ===== */
     #getReadyScreen {
         justify-content: space-between !important;
         padding-top: 10vh;
         padding-bottom: 35vh;
     }
+ 
 
     .get-ready-text-sprite {
         transform: scale(2.8);
@@ -1210,20 +1184,18 @@ body {
         margin-bottom: 2vh;
     }
 
-    /* ===== GAME-OVER SCREEN: center content ===== */
-    #gameOverScreen {
-        justify-content: center !important;
-        padding-top: 0;
-        padding-bottom: 6vh;
-        gap: 2vh;
-    }
+  #gameOverScreen {
+    justify-content: center !important;
+    padding-top: 0;
+    padding-bottom: 6vh;
+    gap: 2vh;
+  }
 
-    /* Remove unwanted extra buttons (e.g., RATE) on mobile */
-    #gameOverScreen .rate-sprite,
-    #gameOverScreen #rateBtn,
-    #gameOverScreen .sprite-button {
-        display: none !important;
-    }
+  #gameOverScreen .rate-sprite,
+  #gameOverScren #rateBtn,
+  #gameOverScreen .sprite-button{
+    display:none !important;
+  }
 
     .game-over-sprite {
         transform: scale(2.8);
@@ -1246,71 +1218,64 @@ body {
         transform: scale(2.5);
     }
 
-    /* --- Coins display (start screen) --- */
     .start-coins-display {
         top: 16px;
         right: 16px;
         padding: 5px 10px;
     }
 
-    /* --- Pause / play toggle --- */
     .game-controls {
         top: 12px;
         right: 12px;
     }
+   .game-controls #toggleBtn {
+    transform: scale(2.4);
+    padding : 0;
+    width: 13px;
+    height: 14px;
+   }
 
-    .game-controls #toggleBtn {
-        transform: scale(2.4);
-        padding: 0;
-        width: 13px;
-        height: 14px;
-    }
+   .in-game-score{
+    top: 25px;
+   }
 
-    /* --- In-game score --- */
-    .in-game-score {
-        top: 25px;
-    }
+   .in-game-score .num-digit {
+    transform: scale(3.5);
+    margin: 0 8px;
+   }
+   .in-game-coins{
+    top:8px;
+    left:8px;
+    padding: 3px 8px;
+   }
 
-    .in-game-score .num-digit {
-        transform: scale(3.5);
-        margin: 0 8px;
-    }
+   .powers-container{
+    top: 80px;
+    left: 8px;
+    gap: 44px;
+   }
 
-    /* --- In-game coins --- */
-    .in-game-coins {
-        top: 8px;
-        left: 8px;
-        padding: 3px 8px;
-    }
+   .power-icon {
+    transform:scale(2.8);
+    transform-origin: left center;
+   }
 
-    /* --- Powers column (left side) --- */
-    .powers-container {
-        top: 80px;
-        left: 8px;
-        gap: 44px;
-    }
+   .power-icon:hover{
+    transform:scale(3.0);
+   }
 
-    .power-icon {
-        transform: scale(2.8);
-        transform-origin: left center;
-    }
+   .power-icon:active{
+    transform:scale(2.4);
+   }
+   
+   .power-qty{
+    font-size: 8px;
+    min-width: 14px;
+    height: 14px;
+    line-height: 14 px;
+   }
 
-    .power-icon:hover {
-        transform: scale(3.0);
-    }
 
-    .power-icon:active {
-        transform: scale(2.4);
-    }
-
-    .power-qty {
-        font-size: 8px;
-        min-width: 14px;
-        height: 14px;
-        line-height: 14px;
-    }
-
-    /* --- Power / shield / gravity standalone buttons --- */
     .power-btn-container {
         bottom: 18vh;
         left: 15px;
@@ -1322,131 +1287,129 @@ body {
         padding: 10px;
     }
 
-    .shield-btn-container {
+    .shield-brn-container {
         bottom: 18vh;
         right: 15px;
         z-index: 200;
     }
 
-    .shield-btn {
-        transform: scale(2);
-        padding: 10px;
-    }
+  .shield-btn {
+    transform: scale(2);
+    padding: 10px;
+  }
 
-    .gravity-btn-container {
-        bottom: 10vh;
-        right: 15px;
-        z-index: 200;
-    }
+  .gravity-btn-container{
+    bottom:10vh;
+    right:15px;
+    z-index: 200;
+  }
 
-    .gravity-btn {
-        transform: scale(1.8);
-        padding: 10px;
-    }
+  .gravity-btn {
+    transform:scale(1.8);
+    padding: 10px;
+  }
 
-    /* --- Shop --- */
-    #shopScreen {
-        justify-content: center !important;
-    }
+  #shopScreen{
+    justify-content: center !important;
+  }
 
-    .shop-panel {
-        width: calc(100vw - 32px);
-        max-width: 360px;
-        border-radius: 14px;
-    }
+  .shop-panel {
+    width: calc (100vw - 32px);
+    max-width: 360px;
+    border-radius: 14px;
+  }
 
-    .shop-header {
-        padding: 14px 16px 10px;
-    }
+  .shop-header {
+    padding: 14px 16px 10px;
+  }
 
-    .shop-title {
-        font-size: 22px;
-        letter-spacing: 2px;
-    }
+  .shop-title {
+    font-size : 22px;
+    letter-spacing: 2px;
+  }
 
-    .shop-coins-display {
-        margin-right: 26px;
-        padding: 4px 10px;
-    }
+  .shop-coins-display {
+    margin-right: 26px;
+    padding: 4px 10px;
+  }
 
-    .close-shop-sprite {
-        top: 10px;
-        right: 10px;
-        transform: scale(2.4);
-    }
+  .close-shop-sprite {
+    top: 10px;
+    right:10px;
+    transform: scale(2.4);
+  }
 
-    .shop-items-row {
-        gap: 10px;
-        padding: 16px 12px 20px;
-    }
+  .shop-items-row {
+    gap: 0px;
+    padding: 16px 12px 20px;
+  }
 
-    .shop-item-card {
-        width: 80px;
-        padding: 12px 8px 8px;
-        border-radius: 10px;
-    }
+  .shop-item-card {
+    width: 80px;
+    padding: 12px 8px 8px;
+    border-radius: 10px;
+  }
 
-    .shop-item-icon-wrap {
-        width: 44px;
-        height: 44px;
-    }
 
-    .shop-item {
-        transform: scale(1.7);
-    }
+  .shop-item-icon-wrap {
+    width:44px;
+    height:44px;
+  }
 
-    .shop-item-name {
-        font-size: 10px;
-    }
+  .shop-item {
+    transform:scale(1.7);
+  }
 
-    .shop-item-buy {
-        font-size: 11px;
-        padding: 3px 8px;
-        width: 54px;
-    }
+  .shop-item-name{
+    font-size: 10px;
+  }
 
-    .shop-message {
-        bottom: 80px;
-        font-size: 14px;
-        padding: 8px 16px;
-    }
+  .shop-item-buy{
+    font-size: 11px;
+    padding: 3px 8px;
+    width:54px;
+  }
+
+  .shop-message{
+    bottom: 80px;
+    font-size: 14px;
+    padding: 8px 16px;
+  }
 }
 
-/* ---- Very small phones (width <= 380px) ---- */
 @media screen and (max-width: 380px) {
-
     .get-ready-sprite {
-        transform: scale(2.4);
+        transform:scale(2.4);
     }
 
-    .start-sprite-button {
-        transform: scale(2.4);
+    .start-sprite-button{
+        transform:scale(2.4);
     }
 
     .shop-sprite-button {
-        transform: scale(2.4);
+        transform:scale(2.4);
     }
 
     .game-over-sprite {
         transform: scale(2.4);
     }
 
-    .scoreboard-sprite {
-        transform: scale(2.6);
+    .scoreboard-sprite{
+        transform:scale(2.6);
         margin-bottom: 12vh;
     }
 
     .restart-sprite-button {
+        transform:scale(2.4);
+    }
+
+    .get-ready-text-sprite{
         transform: scale(2.4);
     }
 
-    .get-ready-text-sprite {
-        transform: scale(2.4);
-    }
-
-    .guidance-sprite {
+    .guidance-sprite{
         transform: scale(2.0);
-    }
+    }    
 
     .power-icon {
         transform: scale(2.4);
@@ -1488,7 +1451,6 @@ body {
     }
 }
 
-/* ---- Short screens (landscape phones / small height) ---- */
 @media screen and (max-height: 650px) and (max-width: 480px) {
 
     #startScreen {
@@ -1565,7 +1527,7 @@ body {
         padding: 6px 12px;
     }
 
-    .in-game-score {
+    .in-game-score { 
         top: 14px;
     }
 
@@ -1587,7 +1549,6 @@ body {
     }
 }
 
-/* ---- Landscape mode (force portrait feel) ---- */
 @media screen and (orientation: landscape) and (max-height: 500px) {
 
     .game-container {
@@ -1697,7 +1658,6 @@ body {
     }
 }
 
-/* ---- Safe-area insets for notched phones ---- */
 @supports (padding: env(safe-area-inset-top)) {
     .game-controls {
         top: calc(12px + env(safe-area-inset-top));

@@ -42,7 +42,7 @@ class Pipe {
 
     draw() {
         const ctx = this.ctx;
-         // Ensure pixel-perfect rendering
+         
          ctx.imageSmoothingEnabled= false;
          ctx.webkitImageSmoohingEnabled = false;
          ctx.mozImageSmoothingEnabled = false;
@@ -51,14 +51,14 @@ class Pipe {
         if (this.spriteLoaded && this.spriteSheet) {
             const capHeight = 12;
 
-            // Draw top pipe (only if not destroyed)
+        
             if (!this.topDestroyed) {
                 const topSpr = this.sprites.topPipe;
                 const topBodySrcY = topSpr.y;
                 const topBodySrcH = topSpr.height - capHeight;
                 const topCapSrcY = topSpr.y + topSpr.height - capHeight;
 
-               //Use integer coordinates for pixel-perfect rendering
+            
                const pipeX = Math.round(this.x);
                const pipeWidth = Math.round(this.width);
 
@@ -85,14 +85,14 @@ class Pipe {
                 );
             }
 
-            // Draw bottom pipe (only if not destroyed)
+            
             if (!this.bottomDestroyed) {
                 const btmSpr = this.sprites.bottomPipe;
                 const btmCapSrcY = btmSpr.y;
                 const btmBodySrcY = btmSpr.y + capHeight;
                 const btmBodySrcH = btmSpr.height - capHeight;
 
-           // Use integer coordinates for pixel-perfect rendering
+
            const pipeX = Math.round(this.x);
            const pipeWidth = Math.round(this.width);
            const bottomY = Math.round(this.bottomY)
@@ -271,7 +271,7 @@ class PipeManager {
                     hitBottom: !!hitBottom
                 };
 
-                // Only destroy the half that was hit
+            
                 if (hitTop) pipe.topDestroyed = true;
                 if (hitBottom) pipe.bottomDestroyed = true;
 

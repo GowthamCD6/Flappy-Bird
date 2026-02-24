@@ -68,45 +68,44 @@ body {
     transform: scale(1.9);
 }
 
-/* Mobile responsive for features page */
-@media screen and (max-width: 480px) {
-    .features-container {
+@media screen and (max-width: 480px){
+    .features-container{
         padding: 30px 20px;
         width: 92%;
         border-radius: 12px;
     }
 
-    .features-title {
+    .features-title{
         font-size: 26px;
         margin-bottom: 25px;
     }
 
-    .feature-grid {
+    .feature-grid{
         gap: 24px;
         margin: 20px 0;
     }
 
-    .feature-item p {
+    .feature-item p{
         font-size: 15px;
     }
 
-    .back-button-sprite {
+    .back-button-sprite{
         transform: scale(2.4);
         margin-top: 25px;
         padding: 12px;
     }
 }
 
-@media screen and (max-width: 380px) {
-    .features-container {
+@media  screen and (max-width: 300px) {
+    .features-container{
         padding: 24px 16px;
     }
 
-    .features-title {
+    .features-title{
         font-size: 22px;
     }
 
-    .feature-item p {
+    .feature-item p{
         font-size: 14px;
     }
 }

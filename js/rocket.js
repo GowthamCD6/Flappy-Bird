@@ -9,10 +9,9 @@
         this.width = 45;
         this.height = 56;
 
-        // Start position with custom X offset for staggered formation
         this.x = canvas.width + this.width + customXOffset;
         
-        // Use custom Y if provided, otherwise random
+
         if (customY !== null) {
             this.y = customY;
         } else {
@@ -20,8 +19,6 @@
             const maxY = canvas.height - 140;
             this.y = minY + Math.random() * (maxY - minY);
         }
-
-        // Use custom speed if provided, otherwise random (reduced speed)
         this.speed = customSpeed !== null ? customSpeed : (1.5 + Math.random() * 1);
 
         this.sprite = {
@@ -40,7 +37,7 @@
         this.warningDuration = 800;
         this.spawnTime = Date.now();
 
-        // Gravity properties
+
         this.velocityY = 0;
         this.affectedByGravity = false;
         this.gravityStrength = 0.5;
@@ -65,13 +62,13 @@
         this.showWarning = false;
         this.x -= this.speed;
 
-        // Apply gravity effect if activated
+    
         if (this.affectedByGravity) {
             this.velocityY += this.gravityStrength;
             this.y += this.velocityY;
-            this.rotation += 0.1; // Rotate as it falls
+            this.rotation += 0.1; 
             
-            // Reduce horizontal speed when falling
+            
             this.speed *= 0.98;
         }
 
@@ -143,7 +140,7 @@
         ctx.webkitImageSmoothingEnabled = true;
         ctx.translate(this.x + this.width / 2, this.y + this.height / 2);
         
-        // Rotate based on gravity state
+    
         if (this.affectedByGravity) {
             ctx.rotate(-Math.PI / 2 + this.rotation);
         } else {
@@ -229,7 +226,7 @@
     }
 
     isOffScreen() {
-        // Also check if rocket fell below screen
+        
         return this.x + this.width < -20 || this.y > this.canvas.height + 50;
     }
 
@@ -248,14 +245,14 @@ class RocketSystem {
         this.rockets = [];
         this.explosions = [];
 
-        // Wave system configuration
+
         this.scoreThreshold = 10;
         this.nextWaveScore = 10;
         this.formationsPerWave = 3;
         this.formationsSpawnedInWave = 0;
         this.waveActive = false;
 
-        // Spawn timing
+        
         this.minSpawnInterval = 15000;
         this.maxSpawnInterval = 20000;
         this.lastSpawnTime = 0;
@@ -549,7 +546,7 @@ class RocketSystem {
         return this.explosions.length > 0;
     }
 
-    // Activate gravity power - makes all rockets fall down
+    
     activateGravityPower() {
         if (this.rockets.length === 0) {
             console.log('No rockets to apply gravity to');
@@ -566,7 +563,7 @@ class RocketSystem {
         return true;
     }
 
-    // Check if there are rockets that can be affected by gravity
+
     hasActiveRockets() {
         return this.rockets.some(rocket => rocket.isActive() && !rocket.affectedByGravity);
     }

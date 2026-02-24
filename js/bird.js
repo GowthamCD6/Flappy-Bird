@@ -42,28 +42,25 @@ class Bird {
         this.baseY = canvas.height / 3.2;
         this.autoFlyAmplitude = 15;
 
-        // Portal suck/release animation scale
         this.suckScale = 1;
         this.releaseAnimation = null;
 
-                // Death animation
+    
         this.isDying = false;
         this.deathBounce = false;
         this.deathTime = 0;
-        this.deathPauseTime = 300; // Brief pause at peak of bounce
+        this.deathPauseTime = 300; 
         this.hitFlashAlpha = 0;
         
-        // Blast/Explosion effect
         this.showBlast = false;
         this.blastTime = 0;
-        this.blastDuration = 500; // Blast shows for 500ms
+        this.blastDuration = 500; 
         this.blastScale = 0;
         this.blastAlpha = 1;
         this.blastX = 0;
         this.blastY = 0;
         this.hitByRocket = false;
         
-        // Load blast sprite
         this.blastLoaded = false;
         this.blastSprite = new Image();
         this.blastSprite.onload = () => {
@@ -77,7 +74,7 @@ class Bird {
     }
 
     reset() {
-        this.x = this.canvas.width / 2 - this.width / 2; // Center bird horizontally
+        this.x = this.canvas.width / 2 - this.width / 2; 
         this.y = this.canvas.height / 2;
         this.velocity = 0;
         this.rotation = 0;
@@ -108,7 +105,7 @@ class Bird {
             this.blastX = this.x + this.width / 2;
             this.blastY = this.y + this.height / 2;
             this.hitFlashAlpha = 1;
-            this.velocity = 0;  // Stop movement during blast
+            this.velocity = 0;  
             this.currentFrame = 1;
         }
     }
@@ -119,9 +116,9 @@ class Bird {
             this.isDying = true;
             this.deathBounce = true;
             this.deathTime = Date.now();
-            this.velocity = -7; // strong bounce up like original flappy bird
-            this.hitFlashAlpha = 1; // Flash effect
-            this.currentFrame = 1; // use middle frame (wings level)
+            this.velocity = -7;
+            this.hitFlashAlpha = 1; 
+            this.currentFrame = 1;
         }
     }
 
@@ -129,30 +126,28 @@ class Bird {
         if(!this.showBlast) return false;
         const elapsed = Date.now() - this.blastTime;
 
-        //Scale up quickly then hold
+        
         if(elapsed < 100) {
-            this.blastScale = 0.1 + (elapsed / 100) * 1.4;  // Scale from 0.1 to 1.5
+            this.blastScale = 0.1 + (elapsed / 100) * 1.4; 
         } else {
             this.blastScale = 1.5;
         }
 
-        //Fade out after initial burst 
+        
         if(elapsed > 200) {
             this.blastAlpha = 1 - ((elapsed - 200) / 300);
             if(this.blastAlpha < 0) this.blastAlpha = 0;
         }
 
-
-        //Blast finished 
         if(elapsed >= this.blastDuration) {
             this.showBlast = false;
-            // Now start the falling animation
+        
             this.deathBounce = true;
             this.deathTime = Date.now();
-            this.velocity = -4; // Smaller bounce after explosion 
-            return true; // Blast complete
+            this.velocity = -4; 
+            return true; 
         }
-        return false; // Still showing blast
+        return false; 
     }
 
 
@@ -169,18 +164,17 @@ class Bird {
         ctx.scale(this.blastScale,this.blastScale);
 
         if(this.blastLoaded && this.blastSprite) {
-            // Draw blast sprite centred
+            
             const blastWidth = 177;
             const blastHeight = 164;
             ctx.drawImage (
                 this.blastSprite,
-                180,17,  // Source x , y from sprite
+                180,17,  
                 blastWidth , blastHeight,
                 -blastWidth / 2, -blastHeight / 2,
                 blastWidth, blastHeight
             );
         } else {
-            //Fallback explosion drawing
             this.drawFallbackBlast(ctx);
         }
 
@@ -189,11 +183,11 @@ class Bird {
     }
 
     drawFallbackBlast(ctx) {
-        // Draw simple explosion circles (optimized - no gradients per frame)
+        
         const colors = ['#FF4500' , '#FFA500' , '#FFD700' , '#FF0000' , '#FFFF00'];
          
 
-        // Cental bright core
+        
         ctx.fillStyle = '#FFFF00';
         ctx.beginPath();
         ctx.arc(0, 0, 25, 0, Math.PI * 2);
@@ -205,7 +199,7 @@ class Bird {
             0, 0, 40, 0, Math.PI * 2);
             ctx.fill();
 
-            // Outer brust circles
+        
             for(let i=0 ; i < 6; i++){
                 const angle = (Math.PI * 2 / 6) * i;
                 const dist = 35;
@@ -220,7 +214,7 @@ class Bird {
                 ctx.fill();
             }
 
-            //center bright flash(simple for performance)
+        
             ctx.fillStyle = '#FFFFFF';
             ctx.globalAlpha = 0.7;
             ctx.beginPath();
@@ -231,8 +225,7 @@ class Bird {
 
     updateDying(groundY){
         const elapsed = Date.now() - this.deathTime;
-
-        // Fade out flash effect
+        
         if(this.hitFlashAlpha > 0) {
             this.hitFlashAlpha -= 0.08;
             if(this.hitFlashAlpha < 0) this.hitFlashAlpha = 0;
@@ -248,11 +241,11 @@ class Bird {
         }
 
 
-        //Apply gravity (accelerating fall) - slower for dramatic effect
+        
         const deathGravity = 0.25;
         this.velocity += deathGravity;
 
-        //Terminal velocity - slower fall
+    
         if(this.velocity > 8) {
             this.velocity = 8;
         }
@@ -260,15 +253,13 @@ class Bird {
 
         this.y += this.velocity;
 
-        //Smooth rotation to face down
         if(this.velocity > 0){
-            //Gradually rotate as falling
+            
             const targetRotation = Math.min(90, this.velocity * 6);
             this.rotation += (targetRotation - this.rotation) * 0.15;
             if(this.rotation > 90) this.rotation = 90;
         }
-        // Let the bird fall completely out of the screen (no stopping at ground)
-        // Bird will fall below canvas height
+    
     }
     hasFallenOut(){
         return this.y > this.canvas.height + 50;
@@ -281,7 +272,7 @@ class Bird {
         this.velocity = this.jumpStrength;
     }
 
-    // Update only animation (no physics) - used in space world floating mode
+    
     updateAnimation(currentTime) {
         if (currentTime - this.lastFrameTime > this.frameInterval) {
             this.currentFrame = (this.currentFrame + 1) % this.frames.length;
@@ -290,31 +281,31 @@ class Bird {
     }
 
     update(currentTime) {
-        // Skip gravity and movement if being sucked into portal or transitioning
+    
         if (typeof portalSystem !== 'undefined') {
             const isSucking = portalSystem.isSuckingIn && portalSystem.isSuckingIn();
             const isTransitioning = portalSystem.isTransitioning && portalSystem.isTransitioning();
             if (isSucking || isTransitioning) {
-                // Only update animation frames during portal effects, no physics
+    
                 if (currentTime - this.lastFrameTime > this.frameInterval) {
                     this.currentFrame = (this.currentFrame + 1) % this.frames.length;
                     this.lastFrameTime = currentTime;
                 }
-                return; // Skip all gravity and movement
+                return; 
             }
         }
 
-        // Apply gravity (reduced in portal new world)
+        
         let currentGravity = this.gravity;
         if (typeof portalSystem !== 'undefined') {
             currentGravity *= portalSystem.getGravityMultiplier();
         }
         this.velocity += currentGravity;
         
-        // Cap max fall speed (also reduced in new world)
+    
         let maxFallSpeed = 6;
         if (typeof portalSystem !== 'undefined' && portalSystem.isInNewWorld()) {
-            maxFallSpeed = 4; // Slower fall in new world
+            maxFallSpeed = 4; 
         }
         if (this.velocity > maxFallSpeed) {
             this.velocity = maxFallSpeed;
@@ -349,19 +340,18 @@ class Bird {
         ctx.save();
         ctx.translate(this.x + this.width / 2, this.y + this.height / 2);
         
-        // Apply portal suck-in rotation (spins while being sucked in)
+        
         const portalRot = this.portalRotation || 0;
         ctx.rotate((this.rotation * Math.PI) / 180 + (portalRot * Math.PI) / 180);
         
-        // Apply suck/release scale for portal animation
         const scale = this.suckScale || 1;
         
-        // Apply stretch effect (spaghettification toward portal)
+        
         const stretchX = this.portalStretchX || 1;
         const stretchY = this.portalStretchY || 1;
         ctx.scale(scale * stretchX, scale * stretchY);
-        
-        // Apply invincibility flashing effect if active
+
+    
         if (typeof portalSystem !== 'undefined' && portalSystem.isInvincible) {
             ctx.globalAlpha = portalSystem.getInvincibilityAlpha();
         }

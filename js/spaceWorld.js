@@ -5,34 +5,28 @@ class SpaceWorldSystem {
         this.bird = null;
         this.isActive = false;
         
-        // Coin collection
         this.coins = [];
         this.collectedCoins = 0;
-        this.totalCoins = 0; // Persistent coin count for shop
+        this.totalCoins = 0; 
         
-        // Coin spawn settings
         this.coinSpawnTimer = 0;
-        this.coinSpawnInterval = 800; // Spawn coins every 800ms
-        this.coinSpeed = 3; // How fast coins move left
+        this.coinSpawnInterval = 800; 
+        this.coinSpeed = 3; 
         
-        // Coin patterns like Subway Surfers
         this.patterns = ['line', 'arc', 'zigzag', 'diamond', 'wave'];
         this.currentPattern = null;
         this.patternCoins = [];
         this.patternIndex = 0;
         
-        // Floating bird control settings
         this.floatVelocity = 0;
-        this.floatSpeed = 0.15; // Smooth acceleration
+        this.floatSpeed = 0.15;
         this.maxFloatSpeed = 4;
-        this.floatFriction = 0.92; // Gradual slowdown
+        this.floatFriction = 0.92; 
         this.isFloating = false;
         
-        // Input tracking for smooth controls
         this.moveUp = false;
         this.moveDown = false;
         
-        // Coin sprite
         this.coinLoaded = false;
         this.coinSprite = new Image();
         this.coinSprite.onload = () => {
@@ -44,18 +38,14 @@ class SpaceWorldSystem {
         };
         this.coinSprite.src = 'assets/images/coin.png';
         
-        // Coin properties
         this.coinSize = 30;
         this.coinRotation = 0;
         
-        // Sparkle effects for collected coins
         this.sparkles = [];
         
-        // Coin magnet power (future feature)
         this.magnetActive = false;
         this.magnetRange = 100;
         
-        // Callback to add coins to main game
         this.onCoinCollected = null;
     }
     
@@ -68,7 +58,6 @@ class SpaceWorldSystem {
     }
     
     setupControls() {
-        // Keyboard controls for floating
         document.addEventListener('keydown', (e) => {
             if (!this.isActive) return;
             
@@ -91,14 +80,12 @@ class SpaceWorldSystem {
             }
         });
         
-        // Touch controls for mobile
         this.canvas?.addEventListener('touchstart', (e) => {
             if (!this.isActive) return;
             const touch = e.touches[0];
             const rect = this.canvas.getBoundingClientRect();
             const touchY = touch.clientY - rect.top;
             
-            // Top half = move up, bottom half = move down
             if (touchY < this.canvas.height / 2) {
                 this.moveUp = true;
             } else {
@@ -132,7 +119,6 @@ class SpaceWorldSystem {
         this.patternIndex = 0;
         this.currentPattern = null;
         
-        // Spawn initial coins
         this.spawnCoinPattern();
         
         console.log('Space World activated! Collect coins!');
@@ -152,32 +138,25 @@ class SpaceWorldSystem {
         
         const now = Date.now();
         
-        // Update floating bird movement
         this.updateFloatingMovement();
         
-        // Spawn coins periodically
         if (now - this.coinSpawnTimer > this.coinSpawnInterval) {
             this.spawnCoinPattern();
             this.coinSpawnTimer = now;
         }
         
-        // Update coins
         this.updateCoins();
         
-        // Check coin collection
         this.checkCoinCollection();
         
-        // Update sparkle effects
         this.updateSparkles();
         
-        // Rotate coins for animation
         this.coinRotation += 0.1;
     }
     
     updateFloatingMovement() {
         if (!this.bird || !this.isActive) return;
         
-        // Apply floating controls (plane-like movement)
         if (this.moveUp) {
             this.floatVelocity -= this.floatSpeed;
         }
@@ -185,16 +164,12 @@ class SpaceWorldSystem {
             this.floatVelocity += this.floatSpeed;
         }
         
-        // Apply friction for smooth deceleration
         this.floatVelocity *= this.floatFriction;
         
-        // Clamp velocity
         this.floatVelocity = Math.max(-this.maxFloatSpeed, Math.min(this.maxFloatSpeed, this.floatVelocity));
         
-        // Apply velocity to bird
         this.bird.y += this.floatVelocity;
         
-        // Keep bird within bounds
         const minY = 50;
         const maxY = this.canvas.height - 100;
         
@@ -207,12 +182,10 @@ class SpaceWorldSystem {
             this.floatVelocity = 0;
         }
         
-        // Slight tilt based on velocity
         this.bird.rotation = this.floatVelocity * 0.05;
     }
     
     spawnCoinPattern() {
-        // Choose a random pattern
         const pattern = this.patterns[Math.floor(Math.random() * this.patterns.length)];
         const startX = this.canvas.width + 50;
         const centerY = this.canvas.height / 2;
@@ -237,7 +210,6 @@ class SpaceWorldSystem {
     }
     
     spawnLinePattern(startX, centerY) {
-        // Horizontal line of coins
         const coinCount = 5 + Math.floor(Math.random() * 4);
         const y = 100 + Math.random() * (this.canvas.height - 250);
         
@@ -253,7 +225,6 @@ class SpaceWorldSystem {
     }
     
     spawnArcPattern(startX, centerY) {
-        // Arc/curved pattern of coins
         const coinCount = 7;
         const arcHeight = 80;
         const baseY = 150 + Math.random() * (this.canvas.height - 350);
@@ -273,7 +244,6 @@ class SpaceWorldSystem {
     }
     
     spawnZigzagPattern(startX, centerY) {
-        // Zigzag pattern
         const coinCount = 8;
         const zigHeight = 60;
         let baseY = 200 + Math.random() * (this.canvas.height - 400);
@@ -290,7 +260,6 @@ class SpaceWorldSystem {
     }
     
     spawnDiamondPattern(startX, centerY) {
-        // Diamond shape
         const baseY = 150 + Math.random() * (this.canvas.height - 350);
         const positions = [
             { dx: 0, dy: 0 },
@@ -316,7 +285,6 @@ class SpaceWorldSystem {
     }
     
     spawnWavePattern(startX, centerY) {
-        // Sine wave pattern
         const coinCount = 10;
         const waveHeight = 100;
         const baseY = this.canvas.height / 2;
@@ -338,10 +306,8 @@ class SpaceWorldSystem {
         for (let i = this.coins.length - 1; i >= 0; i--) {
             const coin = this.coins[i];
             
-            // Move coin left
             coin.x -= this.coinSpeed;
             
-            // Apply magnet effect if active
             if (this.magnetActive && !coin.collected) {
                 const dx = this.bird.x + this.bird.width / 2 - coin.x;
                 const dy = this.bird.y + this.bird.height / 2 - coin.y;
@@ -354,7 +320,6 @@ class SpaceWorldSystem {
                 }
             }
             
-            // Remove coins that are off screen
             if (coin.x < -50 || coin.alpha <= 0) {
                 this.coins.splice(i, 1);
             }
@@ -386,15 +351,12 @@ class SpaceWorldSystem {
         coin.alpha = 0;
         this.collectedCoins++;
         
-        // Add coin to main game's coin balance
         if (this.onCoinCollected) {
             this.onCoinCollected(1);
         }
         
-        // Create sparkle effect
         this.createSparkles(coin.x, coin.y);
         
-        // Play sound (if available)
         this.playCoinSound();
         
         console.log(`Coin collected! Total: ${this.collectedCoins}`);
@@ -436,24 +398,18 @@ class SpaceWorldSystem {
             audio.volume = 0.3;
             audio.play().catch(() => {});
         } catch (e) {
-            // Ignore audio errors
         }
     }
     
     draw(ctx) {
         if (!this.isActive) return;
         
-        // Draw coins
         this.drawCoins(ctx);
         
-        // Draw sparkles
         this.drawSparkles(ctx);
         
-        // Draw coin counter
         this.drawCoinCounter(ctx);
         
-        // Draw control hint (first few seconds)
-        // this.drawControlHint(ctx);
     }
     
     drawCoins(ctx) {
@@ -466,12 +422,10 @@ class SpaceWorldSystem {
             ctx.globalAlpha = coin.alpha;
             ctx.translate(coin.x, coin.y);
             
-            // Coin rotation (spinning effect)
             const scaleX = Math.cos(this.coinRotation) * coin.scale;
             ctx.scale(scaleX, coin.scale);
             
             if (this.coinLoaded) {
-                // Draw coin sprite
                 ctx.drawImage(
                     this.coinSprite,
                     -this.coinSize / 2,
@@ -480,7 +434,6 @@ class SpaceWorldSystem {
                     this.coinSize
                 );
             } else {
-                // Fallback: draw golden circle
                 this.drawFallbackCoin(ctx);
             }
             
@@ -491,25 +444,21 @@ class SpaceWorldSystem {
     }
     
     drawFallbackCoin(ctx) {
-        // Outer gold ring
         ctx.fillStyle = '#B8860B';
         ctx.beginPath();
         ctx.arc(0, 0, this.coinSize / 2, 0, Math.PI * 2);
         ctx.fill();
         
-        // Inner gold
         ctx.fillStyle = '#FFD700';
         ctx.beginPath();
         ctx.arc(0, 0, this.coinSize / 2 - 3, 0, Math.PI * 2);
         ctx.fill();
         
-        // Shine
         ctx.fillStyle = '#FFEC8B';
         ctx.beginPath();
         ctx.arc(-5, -5, 6, 0, Math.PI * 2);
         ctx.fill();
         
-        // Dollar sign
         ctx.fillStyle = '#B8860B';
         ctx.font = 'bold 14px Arial';
         ctx.textAlign = 'center';
@@ -524,7 +473,6 @@ class SpaceWorldSystem {
             ctx.globalAlpha = s.alpha;
             ctx.fillStyle = s.color;
             
-            // Star shape sparkle
             ctx.beginPath();
             for (let i = 0; i < 4; i++) {
                 const angle = (i / 4) * Math.PI * 2;
@@ -534,7 +482,6 @@ class SpaceWorldSystem {
                 if (i === 0) ctx.moveTo(x, y);
                 else ctx.lineTo(x, y);
                 
-                // Inner points
                 const innerAngle = angle + Math.PI / 4;
                 const innerX = s.x + Math.cos(innerAngle) * (s.size * 0.4);
                 const innerY = s.y + Math.sin(innerAngle) * (s.size * 0.4);
@@ -550,12 +497,10 @@ class SpaceWorldSystem {
     drawCoinCounter(ctx) {
         ctx.save();
         
-        // Background box
         ctx.fillStyle = 'rgba(0, 0, 0, 0.5)';
         ctx.roundRect(10, 10, 100, 40, 10);
         ctx.fill();
         
-        // Coin icon
         ctx.fillStyle = '#FFD700';
         ctx.beginPath();
         ctx.arc(35, 30, 12, 0, Math.PI * 2);
@@ -567,7 +512,6 @@ class SpaceWorldSystem {
         ctx.textBaseline = 'middle';
         ctx.fillText('$', 35, 30);
         
-        // Coin count
         ctx.fillStyle = '#FFF';
         ctx.font = 'bold 20px Arial';
         ctx.textAlign = 'left';
@@ -587,32 +531,26 @@ class SpaceWorldSystem {
         ctx.restore();
     }
     
-    // Get if bird should use floating controls
     shouldUseFloatingControls() {
         return this.isActive;
     }
     
-    // Apply floating movement to bird (called from game.js)
     applyFloatingMovement(bird) {
         if (!this.isActive) return false;
         
-        // Bird floats in space - no gravity
         bird.velocity = this.floatVelocity;
         
-        return true; // Return true to indicate we handled movement
+        return true; 
     }
     
-    // Get collected coins count
     getCollectedCoins() {
         return this.collectedCoins;
     }
     
-    // Get total coins (for shop)
     getTotalCoins() {
         return this.totalCoins;
     }
     
-    // Spend coins (for shop purchases)
     spendCoins(amount) {
         if (this.totalCoins >= amount) {
             this.totalCoins -= amount;
@@ -622,13 +560,11 @@ class SpaceWorldSystem {
         return false;
     }
     
-    // Add coins (for rewards)
     addCoins(amount) {
         this.totalCoins += amount;
         this.saveCoins();
     }
     
-    // Save/Load coins from localStorage
     saveCoins() {
         try {
             localStorage.setItem('flappyBirdCoins', this.totalCoins.toString());
@@ -648,7 +584,6 @@ class SpaceWorldSystem {
         }
     }
     
-    // Reset for new game
     reset() {
         this.coins = [];
         this.collectedCoins = 0;
@@ -660,5 +595,4 @@ class SpaceWorldSystem {
     }
 }
 
-// Create global instance
 const spaceWorldSystem = new SpaceWorldSystem();

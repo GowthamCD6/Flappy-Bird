@@ -13,7 +13,7 @@ class Game {
     this.resizeCanvas();
     this.spriteLoaded = false;
 
-    // Sound system
+  
     this.sounds = {
       flap: new Audio('assets/sounds/flap.mp3'),
       point: new Audio('assets/sounds/point.mp3'),
@@ -22,7 +22,7 @@ class Game {
       swoosh: new Audio('assets/sounds/swoosh.mp3'),
       blast: new Audio('assets/sounds/blast.mp3'),
     };
-    // Set volumes
+  
     this.sounds.flap.volume = 0.4;
     this.sounds.point.volume = 0.5;
     this.sounds.hit.volume = 0.5;
@@ -30,7 +30,7 @@ class Game {
     this.sounds.swoosh.volume = 0.4;
     this.sounds.blast.volume = 0.6;
 
-    // Background music
+  
     this.music = new Audio('assets/sounds/MainTheme.mp3');
     this.music.loop = true;
     this.music.volume = 0.3;
@@ -67,20 +67,20 @@ class Game {
 
     this.gameOverTimeoutId = null;
 
-    // Player coins (currency)
+    
     this.playerCoins = this.loadPlayerCoins();
     
-    // Owned items from shop (quantities)
+    
     this.ownedItems = this.loadOwnedItems();
     
-    // Shop prices (coins to buy one use)
+  
     this.shopPrices = {
       shield: 20,
       power: 15,
       antibomb: 10
     };
 
-    // Screen shake effect
+    
     this.screenShake = {
       intensity: 0,
       duration: 0,
@@ -90,28 +90,28 @@ class Game {
     this.groundY = this.canvas.height - 80;
     this.groundX = 0;
 
-    // Apply mobile sizing now that bird exists
+  
     this.resizeCanvas();
 
     this.bindEvents();
 
     coinSystem.init("coinDisplay");
 
-    // Sprite number data for canvas drawing
+    
     this.numberSprites = [
-      { x: 288, y: 100, w: 7, h: 10 },  // 0
-      { x: 291, y: 118, w: 5, h: 10 },  // 1
-      { x: 289, y: 134, w: 7, h: 10 },  // 2
-      { x: 289, y: 150, w: 7, h: 10 },  // 3
-      { x: 287, y: 173, w: 7, h: 10 },  // 4
-      { x: 287, y: 185, w: 7, h: 10 },  // 5
-      { x: 165, y: 245, w: 7, h: 10 },  // 6
-      { x: 175, y: 245, w: 7, h: 10 },  // 7
-      { x: 185, y: 245, w: 7, h: 10 },  // 8
-      { x: 195, y: 245, w: 7, h: 10 }   // 9
+      { x: 288, y: 100, w: 7, h: 10 },  
+      { x: 291, y: 118, w: 5, h: 10 },  
+      { x: 289, y: 134, w: 7, h: 10 },  
+      { x: 289, y: 150, w: 7, h: 10 },  
+      { x: 287, y: 173, w: 7, h: 10 },  
+      { x: 287, y: 185, w: 7, h: 10 },  
+      { x: 165, y: 245, w: 7, h: 10 },  
+      { x: 175, y: 245, w: 7, h: 10 }, 
+      { x: 185, y: 245, w: 7, h: 10 },  
+      { x: 195, y: 245, w: 7, h: 10 }   
     ];
 
-    // In-game score element
+    
     this.inGameScoreElement = document.getElementById("inGameScore");
     coinSystem.reset();
 
@@ -136,7 +136,7 @@ class Game {
     this.setupShieldButton();
     this.setupGravityButton();
     
-    // Update coins display on start
+  
     this.updateStartScreenCoins();
     
     this.gameLoop(0);
@@ -164,24 +164,23 @@ class Game {
 
     this.canvas.addEventListener("click", () => this.handleInput());
 
-    // Touch support for mobile
+    
     this.canvas.addEventListener("touchstart", (e) => {
       e.preventDefault();
       this.handleInput();
     }, { passive: false });
-
-    // Resize handler for orientation changes
+  
     window.addEventListener("resize", () => this.resizeCanvas());
     window.addEventListener("orientationchange", () => {
       setTimeout(() => this.resizeCanvas(), 100);
     });
 
-    // Handle mobile visual viewport changes (address bar hide/show)
+    
     if (window.visualViewport) {
       window.visualViewport.addEventListener("resize", () => this.resizeCanvas());
     }
 
-    // Prevent default touch behaviors (scroll, zoom) on game area
+    
     document.body.addEventListener("touchmove", (e) => {
       if (e.target.closest('.game-container')) {
         e.preventDefault();
@@ -259,7 +258,7 @@ class Game {
       }, { passive: false });
     }
 
-    // Setup shop item click handlers
+    
     this.setupShopItems();
 
     const powerBtn = document.getElementById("powerBtn");
@@ -308,18 +307,18 @@ class Game {
     } else if (this.gameState === "ready") {
       this.beginPlay();
     } else if (this.gameState === "playing") {
-      // Don't allow flap during portal suck-in animation
+      
       if (portalSystem.isSuckingIn && portalSystem.isSuckingIn()) {
         return;
       }
       this.firstInputReceived = true;
       
-      // Break autopilot on user input
+  
       if (portalSystem.isAutopilotActive && portalSystem.isAutopilotActive()) {
         portalSystem.breakAutopilot();
       }
       
-      // In space world, use floating controls instead of flap
+      
       if (!spaceWorldSystem.isActive) {
         this.bird.flap();
         this.playSound('flap');
@@ -331,7 +330,7 @@ class Game {
     this.showSettings = !this.showSettings;
   }
 
-  // Play a sound effect
+  
   playSound(name) {
     const sound = this.sounds[name];
     if (!sound) return;
@@ -341,25 +340,25 @@ class Game {
     } catch (e) {}
   }
 
-  // Load player coins from localStorage
+  
   loadPlayerCoins() {
     const saved = localStorage.getItem('flappybird_coins');
     return saved ? parseInt(saved) : 0;
   }
 
-  // Save player coins to localStorage (debounced to avoid performance issues)
+  
   savePlayerCoins() {
-    // Clear any pending save
+    
     if (this.coinSaveTimeout) {
       clearTimeout(this.coinSaveTimeout);
     }
-    // Debounce the save - only save after 500ms of no changes
+    
     this.coinSaveTimeout = setTimeout(() => {
       localStorage.setItem('flappybird_coins', this.playerCoins.toString());
     }, 500);
   }
   
-  // Force save coins immediately (call on game over, etc.)
+
   forceSaveCoins() {
     if (this.coinSaveTimeout) {
       clearTimeout(this.coinSaveTimeout);
@@ -367,12 +366,12 @@ class Game {
     localStorage.setItem('flappybird_coins', this.playerCoins.toString());
   }
 
-  // Load owned items from localStorage (quantities)
+  
   loadOwnedItems() {
     const saved = localStorage.getItem('flappybird_owned');
     if (saved) {
       const parsed = JSON.parse(saved);
-      // Migrate old boolean format to quantity format
+    
       for (const key in parsed) {
         if (parsed[key] === true) parsed[key] = 1;
       }
@@ -381,15 +380,13 @@ class Game {
     return { shield: 0, power: 0, antibomb: 0 };
   }
 
-  // Save owned items to localStorage
+  
   saveOwnedItems() {
     localStorage.setItem('flappybird_owned', JSON.stringify(this.ownedItems));
   }
-
-  // Add coins (called when scoring)
   addCoins(amount) {
     this.playerCoins += amount;
-    this.savePlayerCoins(); // Debounced save
+    this.savePlayerCoins(); 
     this.updateInGameCoins();
   }
 
@@ -402,18 +399,18 @@ class Game {
   }
 
   updateShopDisplay() {
-    // Update coins display
+    
     const coinsAmount = document.getElementById("shopCoinsAmount");
     if (coinsAmount) {
       coinsAmount.textContent = this.playerCoins;
     }
 
-    // Update owned items display with quantities on the card
+    
     const shopItems = document.querySelectorAll('.shop-item[data-item]');
     shopItems.forEach(item => {
       const itemName = item.getAttribute('data-item');
       const qty = this.ownedItems[itemName] || 0;
-      // Place qty badge on the card (parent .shop-item-card)
+    
       const card = item.closest('.shop-item-card');
       if (!card) return;
       let badge = card.querySelector('.qty-badge');
@@ -432,7 +429,7 @@ class Game {
     if (shopScreen) {
       shopScreen.classList.add("hidden");
     }
-    // Hide any message
+    
     const message = document.getElementById("shopMessage");
     if (message) message.classList.add("hidden");
   }
@@ -440,13 +437,13 @@ class Game {
   purchaseItem(itemName, price) {
     const message = document.getElementById("shopMessage");
 
-    // Check if enough coins
+    
     if (this.playerCoins < price) {
       this.showShopMessage("Not enough coins!", "error");
       return false;
     }
 
-    // Purchase successful - increment quantity
+
     this.playerCoins -= price;
     if (!this.ownedItems[itemName]) this.ownedItems[itemName] = 0;
     this.ownedItems[itemName]++;
@@ -463,12 +460,12 @@ class Game {
     if (message) {
       message.textContent = text;
       message.className = "shop-message " + type;
-      // Reset animation
+
       message.style.animation = 'none';
-      message.offsetHeight; // Trigger reflow
+      message.offsetHeight; 
       message.style.animation = null;
       
-      // Hide after animation
+      
       setTimeout(() => {
         message.classList.add("hidden");
       }, 2000);
@@ -492,7 +489,7 @@ class Game {
     if (this.gameState !== "playing") return;
     if (powerUpSystem.isActive) return;
 
-    // Check if player has power quantity
+  
     const qty = this.ownedItems.power || 0;
     if (qty <= 0) {
       console.log("No Power available! Buy from shop.");
@@ -502,7 +499,7 @@ class Game {
     const activated = powerUpSystem.activate(currentTime);
     if (activated) {
       this.playSound('swoosh');
-      // Decrement quantity
+    
       this.ownedItems.power--;
       this.saveOwnedItems();
       this.updatePowerQuantities();
@@ -520,84 +517,88 @@ class Game {
     const vh = window.innerHeight;
     const vw = window.innerWidth;
 
-    const BASE_W = 400;
-    const BASE_H = 600;
-    const gameAspect = BASE_W / BASE_H;
-    let displayWidth, displayHeight;
 
-    if (vw <= 480) {
-      // Mobile: fill viewport entirely
-      displayWidth = vw;
-      displayHeight = vh;
 
-      // Adapt internal canvas resolution to match the display aspect ratio
-      // Keep width at 400, adjust height proportionally so nothing is stretched
-      const displayAspect = displayWidth / displayHeight;
-      const newInternalH = Math.round(BASE_W / displayAspect);
+  const BASE_W = 400;
+  const BASE_H = 600;
+  const gameAspect = BASE_W / BASE_H;
+  let displayWidth, displayHeight;
 
-      if (this.canvas.width !== BASE_W || this.canvas.height !== newInternalH) {
-        this.canvas.width = BASE_W;
-        this.canvas.height = newInternalH;
 
-        // Recalculate ground position
-        this.groundY = this.canvas.height - 80;
+  if(vw <= 480) {
+    
+     displayWidth = vw;
+     displayHeight = vh;
 
-        // Update gravity ground
-        if (typeof gravitySystem !== 'undefined' && gravitySystem && gravitySystem.setGroundY) {
-          gravitySystem.setGroundY(this.groundY);
-        }
+     
+    const displayAspect = displayWidth / displayHeight;
+     const newInternalH = Math.round(BASE_W / displayAspect);
+
+     if(this.canvas.width !==BASE_W || this.canvas.height !== newInternalH ){
+      this.canvas.width = BASE_W;
+      this.canvas.height = newInternalH;
+
+    
+      this.groundY = this.canvas.height - 80;
+      
+      if(typeof gravitySystem !== 'undefined' && gravitySystem && gravitySystem.setGroundY){
+        gravitySystem.setGroundY(this.groundY);
       }
+     }
 
-      // Always update bird position on mobile (even if canvas size didn't change)
-      if (this.bird) {
-        const startBirdYFactor = 0.35;
-        const readyBirdYFactor = 0.35;
-        const birdYFactor = this.gameState === 'ready' ? readyBirdYFactor : startBirdYFactor;
+     
+     if(this.bird){
+      const startBirdYFactor = 0.35;
+      const readyBirdYFactor = 0.35;
+      const birdYFactor = this.gameState === 'ready'? readyBirdYFactor:startBirdYFactor;
 
+
+      
         this.bird.baseY = this.canvas.height * birdYFactor;
         if (this.gameState === 'start' || this.gameState === 'ready') {
           this.bird.y = this.canvas.height * birdYFactor;
-        }
-      }
+     }
+  }
+  
 
-      // On mobile, let CSS handle container/canvas display sizing
-      // Clear any inline styles that might conflict with CSS !important
-      if (container) {
-        container.style.width = '';
-        container.style.height = '';
-      }
-      this.canvas.style.width = '';
-      this.canvas.style.height = '';
 
-    } else {
-      // Desktop: maintain 2:3 aspect ratio, centered
-      displayHeight = vh;
-      displayWidth = displayHeight * gameAspect;
-      if (displayWidth > vw) {
-        displayWidth = vw;
-        displayHeight = displayWidth / gameAspect;
-      }
 
-      // Reset internal resolution if we came back from mobile
-      if (this.canvas.width !== BASE_W || this.canvas.height !== BASE_H) {
-        this.canvas.width = BASE_W;
-        this.canvas.height = BASE_H;
-        this.groundY = this.canvas.height - 80;
-        if (this.bird) {
-          this.bird.baseY = this.canvas.height / 3.2;
-        }
-        if (typeof gravitySystem !== 'undefined' && gravitySystem && gravitySystem.setGroundY) {
-          gravitySystem.setGroundY(this.groundY);
-        }
-      }
+if(container) {
+  container.style.width = '';
+  container.style.height = '';
+}
+this.canvas.style.width = '';
+this.canvas.style.height = '';
+} else{
 
-      if (container) {
-        container.style.width = displayWidth + 'px';
-        container.style.height = displayHeight + 'px';
-      }
-      this.canvas.style.width = displayWidth + 'px';
-      this.canvas.style.height = displayHeight + 'px';
+  displayHeight = vh;
+  displayWidth = displayHeight * gameAspect;
+  if(displayWidth > vw){
+    displayWidth = vw;
+    displayHeight = displayWidth / gameAspect;
+  }
+
+
+  if(this.canvas.width !== BASE_W || this.canvas.height !== BASE_H){
+    this.canvas.width = BASE_W;
+    this.canvas.height = BASE_H;
+    this.groundY = this.canvas.height - 80;
+    if(this.bird) {
+      this.bird.baseY = this.canvas.height / 3.2;
     }
+    if(typeof gravitySystem !== 'undefined' && gravitySystem && gravitySystem.setGroundY) {
+      gravitySystem.setGroundY(this.groundY);
+    }
+  }
+
+  if(container) {
+    container.style.width = displayWidth + 'px';
+    container.style.height = displayHeight + 'px';
+  }
+  this.canvas.style.width = displayWidth + 'px';
+  this.canvas.style.height = displayHeight + 'px';
+}
+
 
     this.ctx.imageSmoothingEnabled = false;
     this.ctx.webkitImageSmoothingEnabled = false;
@@ -609,7 +610,7 @@ class Game {
     if (this.gameState !== "playing") return;
     if (!shieldSystem.isReady()) return;
 
-    // Check if player has shield quantity
+    
     const qty = this.ownedItems.shield || 0;
     if (qty <= 0) {
       console.log("No Shield available! Buy from shop.");
@@ -618,7 +619,7 @@ class Game {
 
     const activated = shieldSystem.activate();
     if (activated) {
-      // Decrement quantity
+      
       this.ownedItems.shield--;
       this.saveOwnedItems();
       this.updatePowerQuantities();
@@ -633,7 +634,7 @@ class Game {
     const gravityBtn = document.getElementById("gravityBtn");
     if (gravityBtn && gravityBtn.classList.contains("gravity-used")) return;
 
-    // Check if player has anti-rocket quantity
+  
     const qty = this.ownedItems.antibomb || 0;
     if (qty <= 0) {
       console.log("No Anti-Rocket available! Buy from shop.");
@@ -643,7 +644,7 @@ class Game {
     const activated = gravitySystem.activate();
     if (activated && gravityBtn) {
       this.playSound('blast');
-      // Decrement quantity
+      
       this.ownedItems.antibomb--;
       this.saveOwnedItems();
       this.updatePowerQuantities();
@@ -689,7 +690,6 @@ class Game {
     }
   }
 
-  // Update power quantity labels during gameplay
   updatePowerQuantities() {
     const powerQty = document.getElementById("powerQty");
     const shieldQty = document.getElementById("shieldQty");
@@ -706,7 +706,6 @@ class Game {
     this.firstInputReceived = false;
     this.playSound('swoosh');
 
-    // Ensure mobile ready-screen layout (center bird) applies immediately
     this.resizeCanvas();
 
     const startScreen = document.getElementById("startScreen");
@@ -722,7 +721,7 @@ class Game {
     this.firstInputReceived = true;
     this.isPaused = false;
 
-    // Start background music
+    
     this.music.currentTime = 0;
     this.music.play().catch(() => {});
 
@@ -735,16 +734,16 @@ class Game {
     const powersContainer = document.getElementById("powersContainer");
     if (powersContainer) powersContainer.classList.remove("hidden");
     
-    // Show current power quantities
+  
     this.updatePowerQuantities();
 
-    // Show in-game score
+    
     if (this.inGameScoreElement) {
       this.inGameScoreElement.classList.remove("hidden");
       this.updateInGameScore();
     }
 
-    // Show in-game coins display
+  
     const inGameCoins = document.getElementById("inGameCoins");
     if (inGameCoins) {
       inGameCoins.classList.remove("hidden");
@@ -764,7 +763,7 @@ class Game {
     this.bird.flap();
   }
 
-  // Update in-game coins display
+  
   updateInGameCoins() {
     const coinsElement = document.getElementById("inGameCoinsAmount");
     if (coinsElement) {
@@ -807,7 +806,7 @@ class Game {
   }
 
   gameOver() {
-    // Start dying animation instead of immediately showing game over
+  
     if (this.gameState !== "dying" && this.gameState !== "blasting") {
       this.gameState = "dying";
       this.bird.die();
@@ -815,10 +814,10 @@ class Game {
       this.playSound('hit');
       this.music.pause();
       
-      // Play die sound slightly delayed
+  
       setTimeout(() => this.playSound('die'), 300);
       
-      // Trigger screen shake
+      
       this.screenShake = {
         intensity: 8,
         duration: 300,
@@ -839,7 +838,7 @@ class Game {
   }
 
   gameOverByRocket() {
-    // Start blast animation then dying
+    
     if (this.gameState !== "dying" && this.gameState !== "blasting") {
       this.gameState = "blasting";
       this.bird.dieByRocket();
@@ -847,10 +846,10 @@ class Game {
       this.playSound('blast');
       this.music.pause();
       
-      // Play die sound slightly delayed
+    
       setTimeout(() => this.playSound('die'), 400);
       
-      // Stronger screen shake for rocket explosion
+      
       this.screenShake = {
         intensity: 15,
         duration: 400,
@@ -873,7 +872,7 @@ class Game {
   showGameOverScreen() {
     this.gameState = "gameOver";
 
-    // Force save coins when game ends
+    
     this.forceSaveCoins();
 
     const newBestSprite = document.getElementById("newBestSprite");
@@ -881,23 +880,22 @@ class Game {
     if (this.score > this.highScore) {
       this.highScore = this.score;
       saveHighScore(this.score);
-      // Show NEW sprite for new best score
+  
       if (newBestSprite) newBestSprite.classList.remove("hidden");
     } else {
-      // Hide NEW sprite if not a new best
+    
       if (newBestSprite) newBestSprite.classList.add("hidden");
     }
 
-    // Update score displays with sprite numbers
     this.updateSpriteScore("finalScore", this.score);
     this.updateSpriteScore("bestScore", this.highScore);
 
-    // Hide in-game score
+    
     if (this.inGameScoreElement) {
       this.inGameScoreElement.classList.add("hidden");
     }
 
-    // Hide in-game coins display
+  
     const inGameCoins = document.getElementById("inGameCoins");
     if (inGameCoins) {
       inGameCoins.classList.add("hidden");
@@ -909,7 +907,7 @@ class Game {
     document.getElementById("gameOverScreen").classList.remove("hidden");
   }
 
-  // Generate HTML for sprite number display
+  
   generateSpriteNumberHTML(num) {
     const digits = String(num).split('');
     return digits.map(d => {
@@ -918,7 +916,6 @@ class Game {
     }).join('');
   }
 
-  // Update an element with sprite number display
   updateSpriteScore(elementId, score) {
     const element = document.getElementById(elementId);
     if (element) {
@@ -926,7 +923,7 @@ class Game {
     }
   }
 
-  // Update in-game score display
+
   updateInGameScore() {
     if (this.inGameScoreElement) {
       this.inGameScoreElement.innerHTML = this.generateSpriteNumberHTML(this.score);
@@ -951,7 +948,7 @@ class Game {
     this.bgX = 0;
     this.groundX = 0;
     
-    // Reset screen shake
+
     this.screenShake = { intensity: 0, duration: 0, startTime: 0 };
 
     coinSystem.reset();
@@ -984,17 +981,14 @@ class Game {
     const gravityBtn = document.getElementById("gravityBtn");
     if (gravityBtn) gravityBtn.classList.remove("gravity-used");
 
-    this.gameState = "start";
-
-    // Ensure mobile start-screen layout applies immediately
+    this.gameState = "start"
+    
     this.resizeCanvas();
-
-    // Hide in-game score
+    
     if (this.inGameScoreElement) {
       this.inGameScoreElement.classList.add("hidden");
     }
-
-    // Hide in-game coins display
+    
     const inGameCoins = document.getElementById("inGameCoins");
     if (inGameCoins) {
       inGameCoins.classList.add("hidden");
@@ -1008,7 +1002,7 @@ class Game {
     const startScreen = document.getElementById("startScreen");
     if (startScreen) startScreen.classList.remove("hidden");
 
-    // Update coins display on start screen
+    
     this.updateStartScreenCoins();
 
     const getReadyScreen = document.getElementById("getReadyScreen");
@@ -1039,30 +1033,30 @@ class Game {
       if (!this.firstInputReceived) {
         this.bird.updateAutoFly(currentTime);
       } else {
-        // In space world, use floating movement instead of gravity-based
+      
         if (portalSystem.isInNewWorld() && spaceWorldSystem.isActive) {
-          // Space world floating update - no gravity flapping
+          
           this.bird.updateAnimation(currentTime);
           spaceWorldSystem.update(currentTime);
         } else if (portalSystem.isAutopilotActive && portalSystem.isAutopilotActive()) {
-          // Autopilot mode - only update animation, position handled by autopilot
+    
           this.bird.updateAnimation(currentTime);
         } else {
           this.bird.update(currentTime);
           
-          // Activate space world when entering new world
+          
           if (portalSystem.isInNewWorld() && !spaceWorldSystem.isActive) {
             spaceWorldSystem.activate();
           }
         }
         
-        // Deactivate space world when leaving
+      
         if (!portalSystem.isInNewWorld() && spaceWorldSystem.isActive) {
           spaceWorldSystem.deactivate();
         }
       }
 
-      // Only update pipes if not in portal new world
+      
       if (this.firstInputReceived && portalSystem.shouldSpawnPipes()) {
         this.pipeManager.update(currentTime);
       }
@@ -1076,9 +1070,9 @@ class Game {
 
         this.pipeManager.updateSpeed(powerUpSystem.getPipeSpeed());
 
-        // Only check pipe collisions if pipes are active (not in new world)
+        
         if (portalSystem.shouldSpawnPipes()) {
-          // Skip collision if invincible (powerup or portal grace period)
+          
           const isInvincible = powerUpSystem.isInvincible() || portalSystem.checkInvincibility();
           if (isInvincible) {
           } else {
@@ -1102,13 +1096,13 @@ class Game {
             this.score += portalSystem.getScoreMultiplier();
             this.updateInGameScore();
             this.playSound('point');
-            // Earn coins when scoring (5 coins per point, multiplied in portal)
-            // Earn 3 coins per score (multiplied in portal)
+          
+          
             this.addCoins(3 * portalSystem.getScoreMultiplier());
           }
         }
 
-        // Check ground collision (skip if being sucked into portal, transitioning, or invincible)
+      
         const isBeingSuckedIn = portalSystem.isSuckingIn && portalSystem.isSuckingIn();
         const isPortalTransitioning = portalSystem.isTransitioning && portalSystem.isTransitioning();
         const isGroundInvincible = powerUpSystem.isInvincible() || portalSystem.checkInvincibility();
@@ -1118,20 +1112,19 @@ class Game {
             return;
           }
         }
-
-        // Portal system
+      
         if (portalSystem.canTrigger(this.score)) {
           portalSystem.trigger();
-          this.pipeManager.reset(); // Clear pipes when portal appears
+          this.pipeManager.reset();
         }
         portalSystem.update();
 
-        // Update autopilot if active (during invincibility period)
+        
         if (portalSystem.updateAutopilot) {
           portalSystem.updateAutopilot();
         }
 
-        // Handle portal screen shake
+      
         if (portalSystem.needsScreenShake) {
           this.screenShake = {
             intensity: portalSystem.screenShakeIntensity,
@@ -1141,7 +1134,7 @@ class Game {
           portalSystem.needsScreenShake = false;
         }
 
-        // Clear pipes when entering/exiting portal
+      
         if (portalSystem.needsClearPipes) {
           this.pipeManager.reset();
           portalSystem.needsClearPipes = false;
@@ -1151,7 +1144,7 @@ class Game {
 
         gravitySystem.update();
 
-        // Check rocket collision (skip if invincible, being sucked into portal, or transitioning)
+        
         const isBeingSuckedInRocket = portalSystem.isSuckingIn && portalSystem.isSuckingIn();
         const isPortalTransitioningRocket = portalSystem.isTransitioning && portalSystem.isTransitioning();
         const isRocketInvincible = powerUpSystem.isInvincible() || portalSystem.checkInvincibility();
@@ -1169,27 +1162,27 @@ class Game {
       }
     }
 
-    // Handle blasting state - show explosion before falling
+  
     if (this.gameState === "blasting") {
       const blastComplete = this.bird.updateBlast();
       
-      // Update explosions while blasting
+    
       rocketSystem.updateExplosions();
       
-      // When blast is done, transition to dying state
+      
       if (blastComplete) {
         this.gameState = "dying";
       }
     }
 
-    // Handle dying state - bird falls to ground
+    
     if (this.gameState === "dying") {
       this.bird.updateDying(this.groundY);
       
-      // Update explosions while dying
+      
       rocketSystem.updateExplosions();
       
-      // Check if bird has fallen out of screen
+    
       if (this.bird.hasFallenOut()) {
         this.showGameOverScreen();
       }
@@ -1303,7 +1296,6 @@ class Game {
 
     ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
 
-    // Apply screen shake
     let shakeX = 0, shakeY = 0;
     if (this.screenShake.intensity > 0) {
       const elapsed = Date.now() - this.screenShake.startTime;
@@ -1320,19 +1312,19 @@ class Game {
     ctx.save();
     ctx.translate(shakeX, shakeY);
 
-    // Draw world background based on portal state
+
     if (portalSystem.isInNewWorld()) {
       portalSystem.drawNewWorldBackground(ctx);
     } else {
       this.drawBackground();
     }
 
-    // Only draw pipes if not in new world
+    
     if (portalSystem.shouldSpawnPipes()) {
       this.pipeManager.draw();
     }
 
-    // Draw ground based on world
+    
     if (portalSystem.isInNewWorld()) {
       portalSystem.drawNewWorldGround(ctx, this.groundY);
     } else {
@@ -1341,7 +1333,7 @@ class Game {
 
     this.bird.draw();
     
-    // Draw blast effect on top of bird
+    
     if (this.gameState === "blasting" || this.bird.showBlast) {
       this.bird.drawBlast();
     }
@@ -1356,12 +1348,12 @@ class Game {
 
     portalSystem.draw();
 
-    // Draw space world coins
+    
     if (spaceWorldSystem.isActive) {
       spaceWorldSystem.draw(ctx);
     }
 
-    // Score is now displayed using HTML sprite elements
+  
 
     if (this.isPaused && this.gameState === "playing") {
       ctx.fillStyle = "rgba(0, 0, 0, 0.6)";
@@ -1392,9 +1384,9 @@ class Game {
       drawSettings(ctx, this.canvas);
     }
     
-    ctx.restore(); // End screen shake transform
+    ctx.restore();
     
-    // Draw hit flash effect (on top of everything)
+
     if (this.bird.hitFlashAlpha > 0) {
       ctx.save();
       ctx.globalAlpha = this.bird.hitFlashAlpha * 0.5;
