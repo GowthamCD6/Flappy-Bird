@@ -53,7 +53,7 @@ class Game {
     };
 
     this.bgX = 0;
-    this.bgSpeed = 0.5;
+    this.bgSpeed = 1;
 
     this.bird = new Bird(this.canvas);
     this.pipeManager = new PipeManager(this.canvas);
@@ -928,7 +928,7 @@ this.canvas.style.height = '';
       if (powersContainer) powersContainer.classList.add("hidden");
 
       powerUpSystem.deactivate();
-      this.pipeManager.updateSpeed(2);
+      this.pipeManager.updateSpeed(3);
     }
   }
 
@@ -960,7 +960,7 @@ this.canvas.style.height = '';
       if (powersContainer) powersContainer.classList.add("hidden");
 
       powerUpSystem.deactivate();
-      this.pipeManager.updateSpeed(2);
+      this.pipeManager.updateSpeed(3);
     }
   }
 
@@ -1049,7 +1049,7 @@ this.canvas.style.height = '';
     coinSystem.reset();
 
     powerUpSystem.reset();
-    this.pipeManager.updateSpeed(2);
+    this.pipeManager.updateSpeed(3);
 
     shieldSystem.reset();
 
