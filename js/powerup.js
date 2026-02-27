@@ -12,8 +12,8 @@ class PowerUpSystem {
         this.canvas = null;
         this.ctx = null;
 
-        this.originalSpeed = 3;
-        this.boostedSpeed = 6;
+        this.originalSpeed = 1.5;
+        this.boostedSpeed = 3;
 
         this.fixedY = 0;
     }

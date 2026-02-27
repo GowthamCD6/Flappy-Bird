@@ -9,8 +9,8 @@ class Bird {
         this.y = canvas.height / 3.1;
 
         this.velocity = 0;
-        this.gravity = 0.15;
-        this.jumpStrength = -4.5;
+        this.gravity = 0.06;
+        this.jumpStrength = -3.2;
 
         this.rotation = 0;
 
@@ -303,9 +303,9 @@ class Bird {
         this.velocity += currentGravity;
         
     
-        let maxFallSpeed = 6;
+        let maxFallSpeed = 3.5;
         if (typeof portalSystem !== 'undefined' && portalSystem.isInNewWorld()) {
-            maxFallSpeed = 4; 
+            maxFallSpeed = 2.5; 
         }
         if (this.velocity > maxFallSpeed) {
             this.velocity = maxFallSpeed;

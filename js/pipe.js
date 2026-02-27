@@ -9,7 +9,7 @@ class Pipe {
         this.width = 70;
         this.gap = 160;
         this.x = x;
-        this.speed = 3;
+        this.speed = 1.5;
 
         this.sprites = {
             topPipe: {
