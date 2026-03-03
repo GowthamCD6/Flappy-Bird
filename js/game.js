@@ -560,8 +560,6 @@ class Game {
       this.ownedItems.power--;
       this.saveOwnedItems();
       this.updatePowerQuantities();
-      const powerBtn = document.getElementById("powerBtn");
-      if (powerBtn) powerBtn.classList.add("power-used");
     }
   }
 
@@ -687,9 +685,7 @@ this.canvas.style.height = '';
 
   activateGravityPower() {
     if (this.gameState !== "playing") return;
-    
-    const gravityBtn = document.getElementById("gravityBtn");
-    if (gravityBtn && gravityBtn.classList.contains("gravity-used")) return;
+    if (gravitySystem.isActive) return;
 
   
     const qty = this.ownedItems.antibomb || 0;
@@ -699,13 +695,12 @@ this.canvas.style.height = '';
     }
 
     const activated = gravitySystem.activate();
-    if (activated && gravityBtn) {
+    if (activated) {
       this.playSound('blast');
       
       this.ownedItems.antibomb--;
       this.saveOwnedItems();
       this.updatePowerQuantities();
-      gravityBtn.classList.add("gravity-used");
       console.log("Gravity power activated! Rockets falling down.");
     }
   }
@@ -845,12 +840,7 @@ this.canvas.style.height = '';
       this.updateInGameCoins();
     }
 
-    const powerBtn = document.getElementById("powerBtn");
-    if (powerBtn) powerBtn.classList.remove("power-used");
-
-    const gravityBtn = document.getElementById("gravityBtn");
-    if (gravityBtn) gravityBtn.classList.remove("gravity-used");
-
+    this.updatePowerQuantities();
     this.updateShieldButton();
 
     this.syncToggleButton();
@@ -1070,11 +1060,7 @@ this.canvas.style.height = '';
     const gravityBtnContainer = document.getElementById("gravityBtnContainer");
     if (gravityBtnContainer) gravityBtnContainer.classList.add("hidden");
 
-    const powerBtn = document.getElementById("powerBtn");
-    if (powerBtn) powerBtn.classList.remove("power-used");
-
-    const gravityBtn = document.getElementById("gravityBtn");
-    if (gravityBtn) gravityBtn.classList.remove("gravity-used");
+    this.updatePowerQuantities();
 
     this.gameState = "start"
     
