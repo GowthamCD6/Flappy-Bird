@@ -131,7 +131,9 @@ class Game {
     const powersContainer = document.getElementById("powersContainer");
     if (powersContainer) powersContainer.classList.add("hidden");
 
-    this.lastTime = 0;
+    this.lastTime = null;
+    this.simulatedTime = 0;
+    this.accumulator = 0;
 
     this.spaceKeyHeld = false;
     this.lastInputTime = 0;
@@ -142,7 +144,7 @@ class Game {
   
     this.updateStartScreenCoins();
     
-    this.gameLoop(0);
+    requestAnimationFrame((t) => this.gameLoop(t));
   }
 
   bindEvents() {
@@ -1478,13 +1480,37 @@ this.canvas.style.height = '';
   }
 
   gameLoop(currentTime) {
-    const deltaTime = currentTime - this.lastTime;
+    // First frame: just record the timestamp, don't run any updates
+    if (this.lastTime === null) {
+      this.lastTime = currentTime;
+      this.simulatedTime = currentTime;
+      this.accumulator = 0;
+      requestAnimationFrame((t) => this.gameLoop(t));
+      return;
+    }
+
+    let deltaTime = currentTime - this.lastTime;
     this.lastTime = currentTime;
 
-    this.update(currentTime);
+    // Cap delta to prevent spiral of death (e.g. tab was in background)
+    if (deltaTime > 200) deltaTime = 200;
+
+    this.accumulator += deltaTime;
+
+    // Fixed timestep: always run physics at exactly 60 updates/sec
+    // This ensures the game runs at the SAME speed on ALL devices
+    // regardless of whether screen refresh is 30hz, 60hz, or 120hz
+    const FIXED_STEP = 1000 / 60; // ~16.667ms per step
+
+    while (this.accumulator >= FIXED_STEP) {
+      this.simulatedTime += FIXED_STEP;
+      this.update(this.simulatedTime);
+      this.accumulator -= FIXED_STEP;
+    }
+
     this.draw();
 
-    requestAnimationFrame((time) => this.gameLoop(time));
+    requestAnimationFrame((t) => this.gameLoop(t));
   }
 }
 
